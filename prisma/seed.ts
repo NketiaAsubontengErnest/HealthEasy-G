@@ -1,8 +1,18 @@
 import { LicensingBody, PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { resolveDatasource } from './resolve-datasource';
 
-const prisma = new PrismaClient();
+// Resolves local-vs-cloud the same way the application does, so running the
+// seed directly (`npx tsx prisma/seed.ts`) targets the same database as
+// `npm run db:seed` rather than failing on a missing DATABASE_URL.
+const prisma = new PrismaClient({
+  datasources: { db: { url: resolveDatasource().url } }
+});
 const DEFAULT_PASSWORD = 'Password123!';
+
+/** Date columns are real DATE values now — midnight UTC keeps them stable
+ *  regardless of the timezone the seed happens to run in. */
+const d = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
 async function main() {
   console.log('🌱 Seeding PostgreSQL HealthEasy-G database across all tables...');
@@ -15,7 +25,7 @@ async function main() {
       name: 'HealthEasy-G Ridge Regional Hospital',
       code: 'GAR-RIDGE-01',
       hefraLicenseNo: 'HEFRA-GAR-2025-0842',
-      hefraExpiryDate: '2026-11-30',
+      hefraExpiryDate: d('2026-11-30'),
       hefraStatus: 'ACTIVE' as const,
       location: 'Castle Road, Ridge, Accra',
       gpsAddress: 'GA-029-3829',
@@ -32,7 +42,7 @@ async function main() {
       name: 'HealthEasy-G Kumasi South Annex',
       code: 'ASH-KUMASI-02',
       hefraLicenseNo: 'HEFRA-ASH-2024-0119',
-      hefraExpiryDate: '2026-09-15',
+      hefraExpiryDate: d('2026-09-15'),
       hefraStatus: 'PENDING_RENEWAL' as const,
       location: 'Atonsu Agogo, Kumasi',
       gpsAddress: 'AK-192-0041',
@@ -49,7 +59,7 @@ async function main() {
       name: 'HealthEasy-G Tamale Teaching Annex',
       code: 'NR-TAMALE-03',
       hefraLicenseNo: 'HEFRA-NR-2025-0401',
-      hefraExpiryDate: '2027-02-28',
+      hefraExpiryDate: d('2027-02-28'),
       hefraStatus: 'ACTIVE' as const,
       location: 'Hospital Road, Tamale',
       gpsAddress: 'NT-011-8890',
@@ -79,16 +89,16 @@ async function main() {
   // real records rather than a hard-coded list in the browser. NUR-4029 and
   // RAD-6601 expire inside 90 days on purpose, to exercise the "Expiring Soon"
   // path end to end.
-  const licences: Record<string, { licenseNumber: string; licensingBody: LicensingBody; licenseExpiry: string }> = {
-    'DOC-9921': { licenseNumber: 'MDC/RN/18492', licensingBody: 'MDC', licenseExpiry: '2027-01-31' },
-    'DIR-0001': { licenseNumber: 'MDC/RN/10022', licensingBody: 'MDC', licenseExpiry: '2027-05-31' },
-    'RAD-0099': { licenseNumber: 'MDC/RN/09281', licensingBody: 'MDC', licenseExpiry: '2027-10-31' },
-    'NUR-4029': { licenseNumber: 'NMC/GR/48201', licensingBody: 'NMC', licenseExpiry: '2026-09-15' },
-    'WRD-4401': { licenseNumber: 'NMC/GR/39011', licensingBody: 'NMC', licenseExpiry: '2027-03-20' },
-    'THR-8812': { licenseNumber: 'NMC/GR/55120', licensingBody: 'NMC', licenseExpiry: '2027-07-01' },
-    'PH-1102': { licenseNumber: 'PC/GAR/9021', licensingBody: 'PHARMACY_COUNCIL', licenseExpiry: '2027-04-12' },
-    'LAB-5510': { licenseNumber: 'AHPC/LS/3920', licensingBody: 'AHPC', licenseExpiry: '2026-12-01' },
-    'RAD-6601': { licenseNumber: 'AHPC/RAD/1029', licensingBody: 'AHPC', licenseExpiry: '2026-10-15' }
+  const licences: Record<string, { licenseNumber: string; licensingBody: LicensingBody; licenseExpiry: Date }> = {
+    'DOC-9921': { licenseNumber: 'MDC/RN/18492', licensingBody: 'MDC', licenseExpiry: d('2027-01-31') },
+    'DIR-0001': { licenseNumber: 'MDC/RN/10022', licensingBody: 'MDC', licenseExpiry: d('2027-05-31') },
+    'RAD-0099': { licenseNumber: 'MDC/RN/09281', licensingBody: 'MDC', licenseExpiry: d('2027-10-31') },
+    'NUR-4029': { licenseNumber: 'NMC/GR/48201', licensingBody: 'NMC', licenseExpiry: d('2026-09-15') },
+    'WRD-4401': { licenseNumber: 'NMC/GR/39011', licensingBody: 'NMC', licenseExpiry: d('2027-03-20') },
+    'THR-8812': { licenseNumber: 'NMC/GR/55120', licensingBody: 'NMC', licenseExpiry: d('2027-07-01') },
+    'PH-1102': { licenseNumber: 'PC/GAR/9021', licensingBody: 'PHARMACY_COUNCIL', licenseExpiry: d('2027-04-12') },
+    'LAB-5510': { licenseNumber: 'AHPC/LS/3920', licensingBody: 'AHPC', licenseExpiry: d('2026-12-01') },
+    'RAD-6601': { licenseNumber: 'AHPC/RAD/1029', licensingBody: 'AHPC', licenseExpiry: d('2026-10-15') }
   };
 
   const usersData = [
@@ -151,13 +161,13 @@ async function main() {
     {
       mrn: 'HG-2026-0001',
       fullName: 'Kofi Owusu Ansah',
-      dob: '1985-04-12',
+      dob: d('1985-04-12'),
       gender: 'Male',
       phone: '+233 24 412 3456',
       ghanaCardNo: 'GHA-721098412-4',
       nhisNumber: '39482019',
       nhisStatus: 'Active',
-      nhisExpiry: '2027-03-31',
+      nhisExpiry: d('2027-03-31'),
       patientCategory: 'NHIS' as const,
       gpsAddress: 'GA-142-9902',
       residentialAddress: 'House 14, Ring Road Central, Osu, Accra',
@@ -165,18 +175,18 @@ async function main() {
       allergies: ['Penicillin', 'Sulfa Drugs'],
       chronicConditions: ['Hypertension'],
       bloodGroup: 'O+',
-      registrationDate: '2026-01-10'
+      registrationDate: d('2026-01-10')
     },
     {
       mrn: 'HG-2026-0002',
       fullName: 'Ama Serwaa Akoto',
-      dob: '1992-09-25',
+      dob: d('1992-09-25'),
       gender: 'Female',
       phone: '+233 55 901 8877',
       ghanaCardNo: 'GHA-009218471-1',
       nhisNumber: '88201942',
       nhisStatus: 'Active',
-      nhisExpiry: '2026-12-15',
+      nhisExpiry: d('2026-12-15'),
       patientCategory: 'NHIS' as const,
       gpsAddress: 'GA-088-1200',
       residentialAddress: 'Flat 4B, Cantonments, Accra',
@@ -184,12 +194,12 @@ async function main() {
       allergies: [],
       chronicConditions: ['Asthma'],
       bloodGroup: 'A+',
-      registrationDate: '2026-02-14'
+      registrationDate: d('2026-02-14')
     },
     {
       mrn: 'HG-2026-0003',
       fullName: 'Yaw Addo-Danquah',
-      dob: '1978-11-03',
+      dob: d('1978-11-03'),
       gender: 'Male',
       phone: '+233 27 765 4321',
       ghanaCardNo: 'GHA-994810293-8',
@@ -200,18 +210,18 @@ async function main() {
       allergies: ['NSAIDs'],
       chronicConditions: ['Type 2 Diabetes'],
       bloodGroup: 'B+',
-      registrationDate: '2026-03-01'
+      registrationDate: d('2026-03-01')
     },
     {
       mrn: 'HG-2026-0004',
       fullName: 'Adjoa Nyarko',
-      dob: '1999-06-18',
+      dob: d('1999-06-18'),
       gender: 'Female',
       phone: '+233 26 330 7788',
       ghanaCardNo: 'GHA-556201883-2',
       nhisNumber: '55120934',
       nhisStatus: 'Expired',
-      nhisExpiry: '2026-05-31',
+      nhisExpiry: d('2026-05-31'),
       patientCategory: 'CASH' as const,
       gpsAddress: 'GA-217-8811',
       residentialAddress: 'Madina Estates, Accra',
@@ -219,20 +229,20 @@ async function main() {
       allergies: [],
       chronicConditions: [],
       bloodGroup: 'O-',
-      registrationDate: '2026-06-22'
+      registrationDate: d('2026-06-22')
     },
     {
       // Referenced by the ICU bed below — previously the bed pointed at an MRN
       // that had no patient record anywhere in the database.
       mrn: 'HG-2026-0005',
       fullName: 'Kwabena Agyemang Badu',
-      dob: '1962-02-09',
+      dob: d('1962-02-09'),
       gender: 'Male',
       phone: '+233 20 554 9900',
       ghanaCardNo: 'GHA-330219476-5',
       nhisNumber: '77410238',
       nhisStatus: 'Active',
-      nhisExpiry: '2027-01-31',
+      nhisExpiry: d('2027-01-31'),
       patientCategory: 'NHIS' as const,
       gpsAddress: 'GA-455-2019',
       residentialAddress: 'Dansoman High Street, Accra',
@@ -240,7 +250,7 @@ async function main() {
       allergies: ['Penicillin'],
       chronicConditions: ['Hypertension', 'Chronic Kidney Disease'],
       bloodGroup: 'AB+',
-      registrationDate: '2026-07-30'
+      registrationDate: d('2026-07-30')
     }
   ];
 
@@ -255,11 +265,11 @@ async function main() {
 
   // 4. Seed Beds
   const bedsData = [
-    { bedNumber: 'Bed MS-01', wardName: 'Male Surgical Ward', bedType: 'General', status: 'OCCUPIED' as const, patientName: 'Yaw Addo-Danquah', mrn: 'HG-2026-0003', admissionDate: '2026-07-29', assignedNurse: 'Nurse Abena Osei', dailyRateGhc: 120.0 },
+    { bedNumber: 'Bed MS-01', wardName: 'Male Surgical Ward', bedType: 'General', status: 'OCCUPIED' as const, patientName: 'Yaw Addo-Danquah', mrn: 'HG-2026-0003', admissionDate: d('2026-07-29'), assignedNurse: 'Nurse Abena Osei', dailyRateGhc: 120.0 },
     { bedNumber: 'Bed MS-02', wardName: 'Male Surgical Ward', bedType: 'General', status: 'AVAILABLE' as const, dailyRateGhc: 120.0 },
     { bedNumber: 'Bed FM-01', wardName: 'Female Medical Ward', bedType: 'General', status: 'CLEANING' as const, dailyRateGhc: 110.0 },
     { bedNumber: 'Bed MAT-01', wardName: 'Maternity Ward', bedType: 'Maternity', status: 'AVAILABLE' as const, dailyRateGhc: 150.0 },
-    { bedNumber: 'ICU Bed 01', wardName: 'Intensive Care Unit', bedType: 'ICU', status: 'OCCUPIED' as const, patientName: 'Kwabena Agyemang Badu', mrn: 'HG-2026-0005', admissionDate: '2026-08-01', assignedNurse: 'Nurse Comfort Mensah', dailyRateGhc: 500.0 }
+    { bedNumber: 'ICU Bed 01', wardName: 'Intensive Care Unit', bedType: 'ICU', status: 'OCCUPIED' as const, patientName: 'Kwabena Agyemang Badu', mrn: 'HG-2026-0005', admissionDate: d('2026-08-01'), assignedNurse: 'Nurse Comfort Mensah', dailyRateGhc: 500.0 }
   ];
 
   for (const bed of bedsData) {
@@ -273,12 +283,12 @@ async function main() {
 
   // 5. Seed Pharmacy Batches
   const pharmacyBatches = [
-    { drugCode: 'AML-10', drugName: 'Amlodipine', brandName: 'Norvasc', dosageForm: 'Tablet', strength: '10mg', category: 'Cardiovascular', batchNumber: 'BN-AML-2025-09', expiryDate: '2027-08-31', quantityInStock: 450, reorderLevel: 100, unitCostGhc: 1.2, sellingPriceGhc: 1.5, nhisCovered: true, controlledSubstance: false, supplier: 'Tobbinco Pharmaceuticals' },
-    { drugCode: 'PAR-500', drugName: 'Paracetamol', brandName: 'Panadol', dosageForm: 'Tablet', strength: '500mg', category: 'Analgesics', batchNumber: 'BN-PAR-2026-02', expiryDate: '2028-01-15', quantityInStock: 1200, reorderLevel: 250, unitCostGhc: 0.5, sellingPriceGhc: 0.8, nhisCovered: true, controlledSubstance: false, supplier: 'Earnest Chemists' },
-    { drugCode: 'TRM-50', drugName: 'Tramadol HCl', brandName: 'Tramal', dosageForm: 'Capsule', strength: '50mg', category: 'Opioid Analgesic', batchNumber: 'BN-TRM-RESTRICTED', expiryDate: '2026-11-20', quantityInStock: 40, reorderLevel: 50, unitCostGhc: 3.5, sellingPriceGhc: 5.0, nhisCovered: false, controlledSubstance: true, supplier: 'FDA Ghana Certified Importer' },
-    { drugCode: 'COA-80', drugName: 'Artemether/Lumefantrine', brandName: 'Coartem', dosageForm: 'Tablet', strength: '80/480mg', category: 'Anti-Malarial', batchNumber: 'BN-COA-2026-05', expiryDate: '2027-12-31', quantityInStock: 320, reorderLevel: 80, unitCostGhc: 6.5, sellingPriceGhc: 8.0, nhisCovered: true, controlledSubstance: false, supplier: 'Novartis Ghana' },
-    { drugCode: 'MET-500', drugName: 'Metformin', brandName: 'Glucophage', dosageForm: 'Tablet', strength: '500mg', category: 'Antidiabetic', batchNumber: 'BN-MET-2026-03', expiryDate: '2028-03-31', quantityInStock: 640, reorderLevel: 150, unitCostGhc: 0.9, sellingPriceGhc: 1.4, nhisCovered: true, controlledSubstance: false, supplier: 'Danadams Pharmaceuticals' },
-    { drugCode: 'CEF-1G', drugName: 'Ceftriaxone', brandName: 'Rocephin', dosageForm: 'Injection', strength: '1g', category: 'Antibiotic', batchNumber: 'BN-CEF-2026-01', expiryDate: '2027-06-30', quantityInStock: 85, reorderLevel: 40, unitCostGhc: 12.0, sellingPriceGhc: 18.0, nhisCovered: true, controlledSubstance: false, supplier: 'Kinapharma Ltd' }
+    { drugCode: 'AML-10', drugName: 'Amlodipine', brandName: 'Norvasc', dosageForm: 'Tablet', strength: '10mg', category: 'Cardiovascular', batchNumber: 'BN-AML-2025-09', expiryDate: d('2027-08-31'), quantityInStock: 450, reorderLevel: 100, unitCostGhc: 1.2, sellingPriceGhc: 1.5, nhisCovered: true, controlledSubstance: false, supplier: 'Tobbinco Pharmaceuticals' },
+    { drugCode: 'PAR-500', drugName: 'Paracetamol', brandName: 'Panadol', dosageForm: 'Tablet', strength: '500mg', category: 'Analgesics', batchNumber: 'BN-PAR-2026-02', expiryDate: d('2028-01-15'), quantityInStock: 1200, reorderLevel: 250, unitCostGhc: 0.5, sellingPriceGhc: 0.8, nhisCovered: true, controlledSubstance: false, supplier: 'Earnest Chemists' },
+    { drugCode: 'TRM-50', drugName: 'Tramadol HCl', brandName: 'Tramal', dosageForm: 'Capsule', strength: '50mg', category: 'Opioid Analgesic', batchNumber: 'BN-TRM-RESTRICTED', expiryDate: d('2026-11-20'), quantityInStock: 40, reorderLevel: 50, unitCostGhc: 3.5, sellingPriceGhc: 5.0, nhisCovered: false, controlledSubstance: true, supplier: 'FDA Ghana Certified Importer' },
+    { drugCode: 'COA-80', drugName: 'Artemether/Lumefantrine', brandName: 'Coartem', dosageForm: 'Tablet', strength: '80/480mg', category: 'Anti-Malarial', batchNumber: 'BN-COA-2026-05', expiryDate: d('2027-12-31'), quantityInStock: 320, reorderLevel: 80, unitCostGhc: 6.5, sellingPriceGhc: 8.0, nhisCovered: true, controlledSubstance: false, supplier: 'Novartis Ghana' },
+    { drugCode: 'MET-500', drugName: 'Metformin', brandName: 'Glucophage', dosageForm: 'Tablet', strength: '500mg', category: 'Antidiabetic', batchNumber: 'BN-MET-2026-03', expiryDate: d('2028-03-31'), quantityInStock: 640, reorderLevel: 150, unitCostGhc: 0.9, sellingPriceGhc: 1.4, nhisCovered: true, controlledSubstance: false, supplier: 'Danadams Pharmaceuticals' },
+    { drugCode: 'CEF-1G', drugName: 'Ceftriaxone', brandName: 'Rocephin', dosageForm: 'Injection', strength: '1g', category: 'Antibiotic', batchNumber: 'BN-CEF-2026-01', expiryDate: d('2027-06-30'), quantityInStock: 85, reorderLevel: 40, unitCostGhc: 12.0, sellingPriceGhc: 18.0, nhisCovered: true, controlledSubstance: false, supplier: 'Kinapharma Ltd' }
   ];
 
   for (const batch of pharmacyBatches) {
@@ -294,11 +304,11 @@ async function main() {
   // `storeLocation` values must match the union the UI renders, so
   // "Central Medical Stores" becomes "Central Store".
   const inventoryItems = [
-    { itemCode: 'MED-AML-10', itemName: 'Amlodipine 10mg Tabs', category: 'Pharmaceutical', storeLocation: 'OPD Pharmacy', batchNo: 'BN-AML-2025-09', expiryDate: '2027-08-31', quantity: 450, unit: 'Tabs', unitPriceGhc: 1.2, reorderPoint: 100, supplier: 'Tobbinco Pharmaceuticals', lastRestocked: '2026-07-15' },
-    { itemCode: 'LAB-REAG-FBC', itemName: 'Sysmex FBC Lyse Reagent 5L', category: 'Lab Reagent', storeLocation: 'Lab Store', batchNo: 'SYS-2026-01', expiryDate: '2026-09-30', quantity: 4, unit: 'Container', unitPriceGhc: 850.0, reorderPoint: 5, supplier: 'Sysmex Ghana', lastRestocked: '2026-06-20' },
-    { itemCode: 'CON-SYR-5ML', itemName: 'Disposable Syringes 5ml (Box 100)', category: 'Medical Consumable', storeLocation: 'Central Store', batchNo: 'BN-SYR-901', expiryDate: '2028-05-31', quantity: 120, unit: 'Box', unitPriceGhc: 45.0, reorderPoint: 30, supplier: 'M&G Pharmaceuticals', lastRestocked: '2026-07-01' },
-    { itemCode: 'CON-GLV-M', itemName: 'Examination Gloves Medium (Box 100)', category: 'Medical Consumable', storeLocation: 'Ward Stock', batchNo: 'BN-GLV-2026-04', expiryDate: '2029-01-31', quantity: 18, unit: 'Box', unitPriceGhc: 38.0, reorderPoint: 25, supplier: 'M&G Pharmaceuticals', lastRestocked: '2026-07-20' },
-    { itemCode: 'GEN-PPR-A4', itemName: 'A4 Printing Paper (Ream)', category: 'General Supply', storeLocation: 'Central Store', batchNo: 'N/A', expiryDate: '', quantity: 60, unit: 'Ream', unitPriceGhc: 55.0, reorderPoint: 20, supplier: 'Accra Stationers Ltd', lastRestocked: '2026-08-02' }
+    { itemCode: 'MED-AML-10', itemName: 'Amlodipine 10mg Tabs', category: 'Pharmaceutical', storeLocation: 'OPD Pharmacy', batchNo: 'BN-AML-2025-09', expiryDate: d('2027-08-31'), quantity: 450, unit: 'Tabs', unitPriceGhc: 1.2, reorderPoint: 100, supplier: 'Tobbinco Pharmaceuticals', lastRestocked: d('2026-07-15') },
+    { itemCode: 'LAB-REAG-FBC', itemName: 'Sysmex FBC Lyse Reagent 5L', category: 'Lab Reagent', storeLocation: 'Lab Store', batchNo: 'SYS-2026-01', expiryDate: d('2026-09-30'), quantity: 4, unit: 'Container', unitPriceGhc: 850.0, reorderPoint: 5, supplier: 'Sysmex Ghana', lastRestocked: d('2026-06-20') },
+    { itemCode: 'CON-SYR-5ML', itemName: 'Disposable Syringes 5ml (Box 100)', category: 'Medical Consumable', storeLocation: 'Central Store', batchNo: 'BN-SYR-901', expiryDate: d('2028-05-31'), quantity: 120, unit: 'Box', unitPriceGhc: 45.0, reorderPoint: 30, supplier: 'M&G Pharmaceuticals', lastRestocked: d('2026-07-01') },
+    { itemCode: 'CON-GLV-M', itemName: 'Examination Gloves Medium (Box 100)', category: 'Medical Consumable', storeLocation: 'Ward Stock', batchNo: 'BN-GLV-2026-04', expiryDate: d('2029-01-31'), quantity: 18, unit: 'Box', unitPriceGhc: 38.0, reorderPoint: 25, supplier: 'M&G Pharmaceuticals', lastRestocked: d('2026-07-20') },
+    { itemCode: 'GEN-PPR-A4', itemName: 'A4 Printing Paper (Ream)', category: 'General Supply', storeLocation: 'Central Store', batchNo: 'N/A', expiryDate: null, quantity: 60, unit: 'Ream', unitPriceGhc: 55.0, reorderPoint: 20, supplier: 'Accra Stationers Ltd', lastRestocked: d('2026-08-02') }
   ];
 
   for (const item of inventoryItems) {
@@ -353,8 +363,8 @@ async function main() {
   const labTech = staffByStaffId['LAB-5510'];
   const pharmacist = staffByStaffId['PH-1102'];
 
-  const today = new Date().toISOString().split('T')[0];
-  const thisMonth = today.slice(0, 7);
+  const today = new Date();
+  const thisMonth = new Date().toISOString().slice(0, 7);
 
   // --- Queue -------------------------------------------------------
   const queueSeed = [

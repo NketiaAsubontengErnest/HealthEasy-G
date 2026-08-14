@@ -30,10 +30,7 @@ export const POST = withAuth('POST', async (req, session) => {
     where: {
       batchId: null,
       status: { in: ['Validated', 'Passed Verification'] },
-      attendanceDate: {
-        gte: monthStart.toISOString().split('T')[0],
-        lt: monthEnd.toISOString().split('T')[0]
-      }
+      attendanceDate: { gte: monthStart, lt: monthEnd }
     },
     select: { id: true, totalClaimGhc: true }
   });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
-import { toDispenseRecord } from '@/lib/adapters';
+import { formatDate, toDispenseRecord } from '@/lib/adapters';
 
 export const GET = withAuth('GET', async (req) => {
   const patientId = new URL(req.url).searchParams.get('patientId');
@@ -58,10 +58,9 @@ export const POST = withAuth('POST', async (req, session) => {
       };
     }
 
-    const expiry = new Date(batch.expiryDate);
-    if (!Number.isNaN(expiry.getTime()) && expiry.getTime() < Date.now()) {
+    if (batch.expiryDate && batch.expiryDate.getTime() < Date.now()) {
       return {
-        error: `Batch ${batchNumber} of ${batch.drugName} expired on ${batch.expiryDate} and cannot be dispensed.`,
+        error: `Batch ${batchNumber} of ${batch.drugName} expired on ${formatDate(batch.expiryDate)} and cannot be dispensed.`,
         status: 409 as const
       };
     }

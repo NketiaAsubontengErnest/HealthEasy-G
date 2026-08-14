@@ -159,13 +159,59 @@ type Row = Record<string, any>;
 const iso = (value: unknown): string =>
   value instanceof Date ? value.toISOString() : String(value ?? '');
 
+/**
+ * Date columns are real DATE/TIMESTAMP values in PostgreSQL now, but the
+ * client types (and every date input in the UI) speak `YYYY-MM-DD`. These two
+ * helpers are the only place that conversion happens.
+ */
+export function formatDate(value: unknown): string {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString().split('T')[0];
+  if (!value) return '';
+  return String(value).split('T')[0];
+}
+
+function formatDateOrUndefined(value: unknown): string | undefined {
+  const formatted = formatDate(value);
+  return formatted || undefined;
+}
+
+/**
+ * Parses a date coming from a request body. Returns null for blank input and
+ * throws for genuinely malformed values, so a bad date is rejected at the API
+ * boundary instead of silently stored.
+ */
+export function parseDate(value: unknown, field = 'date'): Date | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`"${value}" is not a valid ${field}. Use YYYY-MM-DD.`);
+  }
+  return parsed;
+}
+
+/** Same as `parseDate` but insists on a value. */
+export function requireDate(value: unknown, field: string): Date {
+  const parsed = parseDate(value, field);
+  if (!parsed) throw new Error(`${field} is required.`);
+  return parsed;
+}
+
+/** Midnight UTC, for DATE columns that must not shift with the server's zone. */
+export function toDateOnly(value: unknown, field = 'date'): Date | null {
+  const parsed = parseDate(value, field);
+  if (!parsed) return null;
+  return new Date(`${parsed.toISOString().split('T')[0]}T00:00:00.000Z`);
+}
+
 export function toFacility(row: Row): FacilityBranch {
   return {
     id: row.id,
     name: row.name,
     code: row.code,
     hefraLicenseNo: row.hefraLicenseNo,
-    hefraExpiryDate: row.hefraExpiryDate,
+    hefraExpiryDate: formatDate(row.hefraExpiryDate),
     hefraStatus: LICENSE_STATUS_TO_CLIENT[row.hefraStatus as LicenseStatus] ?? 'Active',
     location: row.location,
     gpsAddress: row.gpsAddress,
@@ -177,14 +223,14 @@ export function toFacility(row: Row): FacilityBranch {
     adminName: row.adminName,
     adminEmail: row.adminEmail,
     bedCapacity: row.bedCapacity,
-    createdDate: iso(row.createdAt).split('T')[0]
+    createdDate: formatDate(row.createdAt)
   };
 }
 
 /** License expiry drives the staff badge shown on the dashboard. */
-function licenseStatus(expiry: string | null | undefined): StaffCredential['status'] {
+function licenseStatus(expiry: Date | string | null | undefined): StaffCredential['status'] {
   if (!expiry) return 'Active';
-  const expiryDate = new Date(expiry);
+  const expiryDate = expiry instanceof Date ? expiry : new Date(expiry);
   if (Number.isNaN(expiryDate.getTime())) return 'Active';
 
   const daysRemaining = (expiryDate.getTime() - Date.now()) / 86_400_000;
@@ -202,7 +248,7 @@ export function toStaff(row: Row): StaffCredential {
     email: row.email,
     licenseNumber: row.licenseNumber ?? 'N/A',
     licensingBody: LICENSING_BODY_TO_CLIENT[row.licensingBody] ?? 'Other',
-    licenseExpiry: row.licenseExpiry ?? '',
+    licenseExpiry: formatDate(row.licenseExpiry),
     // Suspended accounts keep their stored status; otherwise derive from the
     // licence expiry so the compliance widget reflects reality.
     status: row.status && row.status !== 'Active' ? row.status : licenseStatus(row.licenseExpiry),
@@ -216,13 +262,13 @@ export function toPatient(row: Row): PatientRecord {
     mrn: row.mrn,
     facilityId: row.facilityId,
     fullName: row.fullName,
-    dob: row.dob,
+    dob: formatDate(row.dob),
     gender: row.gender,
     phone: row.phone,
     ghanaCardNo: row.ghanaCardNo,
     nhisNumber: row.nhisNumber ?? undefined,
     nhisStatus: row.nhisStatus ?? undefined,
-    nhisExpiry: row.nhisExpiry ?? undefined,
+    nhisExpiry: formatDateOrUndefined(row.nhisExpiry),
     patientCategory: PATIENT_CATEGORY_TO_CLIENT[row.patientCategory as PrismaPatientCategory] ?? 'Cash',
     gpsAddress: row.gpsAddress,
     residentialAddress: row.residentialAddress,
@@ -230,7 +276,7 @@ export function toPatient(row: Row): PatientRecord {
     allergies: row.allergies ?? [],
     chronicConditions: row.chronicConditions ?? [],
     bloodGroup: row.bloodGroup,
-    registrationDate: row.registrationDate,
+    registrationDate: formatDate(row.registrationDate),
     photoUrl: row.photoUrl ?? undefined,
     consentSigned: row.consentSigned,
     mergedWithMrn: row.mergedWithMrn ?? undefined
@@ -321,7 +367,7 @@ export function toBed(row: Row): InpatientBed {
     currentPatientId: row.currentPatientId ?? undefined,
     currentPatientName: row.patientName ?? undefined,
     currentMrn: row.mrn ?? undefined,
-    admissionDate: row.admissionDate ?? undefined,
+    admissionDate: formatDateOrUndefined(row.admissionDate),
     assignedNurse: row.assignedNurse ?? undefined,
     dailyRateGhc: row.dailyRateGhc
   };
@@ -338,13 +384,13 @@ export function toLabOrder(row: Row): LabOrderRecord {
     testCategory: row.testCategory ?? 'General Pathology',
     specimenType: row.specimenType,
     specimenBarcode: row.barcodeNo,
-    collectedAt: row.collectedAt ?? undefined,
-    receivedAt: row.receivedAt ?? undefined,
+    collectedAt: row.collectedAt ? iso(row.collectedAt) : undefined,
+    receivedAt: row.receivedAt ? iso(row.receivedAt) : undefined,
     status: row.status,
     results: Array.isArray(row.results) ? row.results : [],
     technicianName: row.technicianName ?? undefined,
     verifiedBy: row.verifiedByName ?? undefined,
-    verificationTimestamp: row.verificationTime ?? undefined,
+    verificationTimestamp: row.verificationTime ? iso(row.verificationTime) : undefined,
     criticalAlertAcknowledged: row.status === 'Verified' || row.status === 'Completed'
   };
 }
@@ -364,7 +410,7 @@ export function toRadiologyOrder(row: Row): RadiologyOrderRecord {
     radiographerNotes: row.radiographerNotes ?? undefined,
     radiologistReport: row.reportContent ?? undefined,
     verifiedBy: row.radiologistName ?? undefined,
-    verificationTimestamp: row.signedTimestamp ?? undefined
+    verificationTimestamp: row.signedTimestamp ? iso(row.signedTimestamp) : undefined
   };
 }
 
@@ -377,7 +423,7 @@ export function toPharmacyBatch(row: Row): PharmacyBatchItem {
     dosageForm: row.dosageForm,
     strength: row.strength,
     batchNumber: row.batchNumber,
-    expiryDate: row.expiryDate,
+    expiryDate: formatDate(row.expiryDate),
     quantityInStock: row.quantityInStock,
     reorderLevel: row.reorderLevel,
     unitPriceGhc: row.sellingPriceGhc,
@@ -436,7 +482,7 @@ export function toClaimLine(row: Row): NHISClaimLine {
     patientId: row.patientId,
     mrn: row.mrn,
     nhisNumber: row.nhisNumber,
-    attendanceDate: row.attendanceDate,
+    attendanceDate: formatDate(row.attendanceDate),
     verificationRef: row.verificationRef ?? '',
     diagnosisCode: row.icdCode,
     diagnosisName: row.icdDescription,
@@ -472,7 +518,7 @@ export function toInventoryItem(row: Row): InventoryStoreItem {
     category: row.category,
     storeLocation: row.storeLocation,
     batchNo: row.batchNo ?? 'N/A',
-    expiryDate: row.expiryDate ?? '',
+    expiryDate: formatDate(row.expiryDate),
     quantityOnHand: quantity,
     reorderPoint,
     unitCostGhc: row.unitPriceGhc ?? 0,
@@ -507,7 +553,7 @@ export function toClaimBatch(row: Row): NHISClaimBatch {
     claimCount: row.claimCount,
     totalAmountGhc: row.totalAmountGhc,
     status: row.status,
-    createdDate: iso(row.createdAt).split('T')[0]
+    createdDate: formatDate(row.createdAt)
   };
 }
 

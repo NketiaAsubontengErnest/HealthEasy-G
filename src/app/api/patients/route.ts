@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
-import { toPatient, toPatientCategory } from '@/lib/adapters';
+import { requireDate, toDateOnly, toPatient, toPatientCategory } from '@/lib/adapters';
 import { formatSequence, withUniqueNumber } from '@/lib/sequence';
 
 export const GET = withAuth('GET', async (req) => {
@@ -60,13 +60,13 @@ export const POST = withAuth('POST', async (req, session) => {
           mrn,
           facilityId: facilityId || 'fac-1',
           fullName,
-          dob,
+          dob: requireDate(dob, 'date of birth'),
           gender,
           phone: phone || '',
           ghanaCardNo,
           nhisNumber: nhisNumber || null,
           nhisStatus: nhisStatus || null,
-          nhisExpiry: nhisExpiry || null,
+          nhisExpiry: toDateOnly(nhisExpiry, 'NHIS expiry date'),
           patientCategory: toPatientCategory(patientCategory),
           gpsAddress: gpsAddress || '',
           residentialAddress: residentialAddress || '',
@@ -74,7 +74,7 @@ export const POST = withAuth('POST', async (req, session) => {
           allergies: allergies || [],
           chronicConditions: chronicConditions || [],
           bloodGroup: bloodGroup || 'O+',
-          registrationDate: new Date().toISOString().split('T')[0]
+          registrationDate: new Date()
         }
       })
   );

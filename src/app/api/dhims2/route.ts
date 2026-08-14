@@ -23,8 +23,8 @@ function monthBounds(monthYear: string): { start: Date; end: Date } {
   return { start, end };
 }
 
-function ageInYears(dob: string, on: Date): number | null {
-  const born = new Date(dob);
+function ageInYears(dob: Date | string, on: Date): number | null {
+  const born = dob instanceof Date ? dob : new Date(dob);
   if (Number.isNaN(born.getTime())) return null;
 
   let age = on.getUTCFullYear() - born.getUTCFullYear();
@@ -38,8 +38,6 @@ export const GET = withAuth('GET', async (req) => {
   const monthYear = requested && /^\d{4}-\d{2}$/.test(requested) ? requested : new Date().toISOString().slice(0, 7);
 
   const { start, end } = monthBounds(monthYear);
-  const startDate = start.toISOString().split('T')[0];
-  const endDate = end.toISOString().split('T')[0];
 
   const [encounters, manualReturn, claimTotals, admissions] = await Promise.all([
     prisma.eMREncounter.findMany({
@@ -48,11 +46,11 @@ export const GET = withAuth('GET', async (req) => {
     }),
     prisma.dhimsMonthlyReturn.findUnique({ where: { monthYear } }),
     prisma.nHISClaimLine.aggregate({
-      where: { attendanceDate: { gte: startDate, lt: endDate } },
+      where: { attendanceDate: { gte: start, lt: end } },
       _sum: { totalClaimGhc: true }
     }),
     prisma.inpatientBed.count({
-      where: { admissionDate: { gte: startDate, lt: endDate } }
+      where: { admissionDate: { gte: start, lt: end } }
     })
   ]);
 

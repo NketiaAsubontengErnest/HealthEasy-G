@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
-import { toFacility, toLicenseStatus } from '@/lib/adapters';
+import { requireDate, toFacility, toLicenseStatus } from '@/lib/adapters';
 
 export const GET = withAuth('GET', async () => {
   const facilities = await prisma.facilityBranch.findMany({ orderBy: { createdAt: 'desc' } });
@@ -46,7 +46,7 @@ export const POST = withAuth('POST', async (req, session) => {
       name,
       code,
       hefraLicenseNo: hefraLicenseNo || '',
-      hefraExpiryDate: hefraExpiryDate || '',
+      hefraExpiryDate: requireDate(hefraExpiryDate, 'HeFRA licence expiry date'),
       hefraStatus: 'ACTIVE',
       location: location || '',
       gpsAddress: gpsAddress || '',

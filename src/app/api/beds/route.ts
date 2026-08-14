@@ -48,7 +48,7 @@ export const PATCH = withAuth('PATCH', async (req, session) => {
       currentPatientId: currentPatientId || null,
       patientName: patientName || null,
       mrn: mrn || null,
-      admissionDate: currentPatientId ? new Date().toISOString().split('T')[0] : null
+      admissionDate: currentPatientId ? new Date() : null
     }
   });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, roleHasPermission, withAuth } from '@/lib/api-guard';
-import { toLabOrder } from '@/lib/adapters';
+import { parseDate, toLabOrder } from '@/lib/adapters';
 import { withUniqueNumber } from '@/lib/sequence';
 
 const LAB_STATUSES = ['Ordered', 'Specimen Collected', 'In Analysis', 'Verified', 'Completed'] as const;
@@ -48,7 +48,7 @@ export const POST = withAuth('POST', async (req, session) => {
           specimenType: catalogueEntry?.specimenType ?? specimenType ?? 'Blood / Plasma',
           barcodeNo,
           orderedBy: session.name,
-          orderTimestamp: new Date().toISOString(),
+          orderTimestamp: new Date(),
           status: 'Ordered'
         }
       })
@@ -89,13 +89,13 @@ export const PATCH = withAuth('PATCH', async (req, session) => {
     data: {
       ...(status && { status }),
       ...(results !== undefined && { results }),
-      ...(collectedAt && { collectedAt }),
-      ...(receivedAt && { receivedAt }),
+      ...(collectedAt && { collectedAt: parseDate(collectedAt, 'collection time') }),
+      ...(receivedAt && { receivedAt: parseDate(receivedAt, 'receipt time') }),
       ...(results !== undefined && { technicianName: session.name }),
       ...(isVerification && {
         verifiedById: session.id,
         verifiedByName: session.name,
-        verificationTime: new Date().toISOString()
+        verificationTime: new Date()
       })
     }
   });

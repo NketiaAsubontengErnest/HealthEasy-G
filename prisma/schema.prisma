@@ -70,7 +70,7 @@ model FacilityBranch {
   name            String
   code            String        @unique
   hefraLicenseNo  String
-  hefraExpiryDate String
+  hefraExpiryDate DateTime      @db.Date
   hefraStatus     LicenseStatus @default(ACTIVE)
   location        String
   gpsAddress      String
@@ -101,7 +101,7 @@ model UserStaff {
   staffId       String        @unique
   licenseNumber String?
   licensingBody LicensingBody @default(OTHER)
-  licenseExpiry String?
+  licenseExpiry DateTime?     @db.Date
   status        String        @default("Active")
   department    String
   email         String        @unique
@@ -126,13 +126,13 @@ model Patient {
   mrn                String          @unique // Medical Record Number
   facilityId         String          @default("fac-1")
   fullName           String
-  dob                String
+  dob                DateTime        @db.Date
   gender             String
   phone              String
   ghanaCardNo        String          @unique
   nhisNumber         String?
   nhisStatus         String?         @default("Active")
-  nhisExpiry         String?
+  nhisExpiry         DateTime?       @db.Date
   patientCategory    PatientCategory @default(CASH)
   gpsAddress         String
   residentialAddress String
@@ -140,7 +140,7 @@ model Patient {
   allergies          String[]
   chronicConditions  String[]
   bloodGroup         String          @default("O+")
-  registrationDate   String
+  registrationDate   DateTime        @default(now()) @db.Date
   photoUrl           String?
   consentSigned      Boolean         @default(true)
   mergedWithMrn      String?
@@ -257,7 +257,7 @@ model InpatientBed {
   currentPatientId String?
   patientName      String?
   mrn              String?
-  admissionDate    String?
+  admissionDate    DateTime? @db.Date
   assignedNurse    String?
   dailyRateGhc     Float
   createdAt        DateTime  @default(now())
@@ -280,15 +280,15 @@ model LabOrder {
   specimenType     String
   barcodeNo        String   @unique
   orderedBy        String
-  orderTimestamp   String
-  collectedAt      String?
-  receivedAt       String?
+  orderTimestamp   DateTime @default(now())
+  collectedAt      DateTime?
+  receivedAt       DateTime?
   technicianName   String?
   status           String   @default("Ordered") // Ordered, Specimen Collected, In Analysis, Verified, Completed
   results          Json? // Object mapping test parameters to values & ranges
   verifiedById     String?
   verifiedByName   String?
-  verificationTime String?
+  verificationTime DateTime?
   createdAt        DateTime @default(now())
 
   patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -322,13 +322,13 @@ model RadiologyOrder {
   pregnancyScreened Boolean @default(false)
   radiographerNotes String?
   orderedBy        String
-  orderTimestamp   String
+  orderTimestamp   DateTime @default(now())
   status           String   @default("Ordered")
   pacsAccessionNo  String   @unique
   imageUrls        String[]
   reportContent    String?
   radiologistName  String?
-  signedTimestamp  String?
+  signedTimestamp  DateTime?
   criticalFindings Boolean  @default(false)
   createdAt        DateTime @default(now())
 
@@ -348,7 +348,7 @@ model PharmacyBatch {
   strength          String   @default("")
   category          String
   batchNumber       String   @unique
-  expiryDate        String
+  expiryDate        DateTime @db.Date
   quantityInStock   Int
   reorderLevel      Int      @default(50)
   unitCostGhc       Float
@@ -423,8 +423,8 @@ model NHISClaimLine {
   patientName       String
   nhisNumber        String
   gender            String
-  dob               String
-  attendanceDate    String
+  dob               DateTime @db.Date
+  attendanceDate    DateTime @db.Date
   verificationRef   String   @default("")
   icdCode           String
   icdDescription    String
@@ -452,13 +452,13 @@ model InventoryStoreItem {
   category      String
   storeLocation String   @default("Central Store")
   batchNo       String   @default("N/A")
-  expiryDate    String   @default("")
+  expiryDate    DateTime? @db.Date
   quantity      Int
   unit          String
   unitPriceGhc  Float
   reorderPoint  Int      @default(20)
   supplier      String
-  lastRestocked String
+  lastRestocked DateTime @default(now()) @db.Date
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

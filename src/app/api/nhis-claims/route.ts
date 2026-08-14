@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth } from '@/lib/api-guard';
-import { toClaimLine } from '@/lib/adapters';
+import { toClaimLine, toDateOnly } from '@/lib/adapters';
 import { formatSequence, withUniqueNumber } from '@/lib/sequence';
 
 export const GET = withAuth('GET', async () => {
@@ -63,7 +63,7 @@ export const POST = withAuth('POST', async (req) => {
           nhisNumber: patient.nhisNumber || nhisNumber || 'N/A',
           gender: patient.gender,
           dob: patient.dob,
-          attendanceDate: attendanceDate || new Date().toISOString().split('T')[0],
+          attendanceDate: toDateOnly(attendanceDate) ?? new Date(),
           verificationRef: `VER-NHIA-${Math.floor(10_000 + Math.random() * 90_000)}`,
           icdCode: icdCode || 'Z00.0',
           icdDescription: icdDescription || 'General Medical Examination',

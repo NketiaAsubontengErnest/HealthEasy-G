@@ -65,7 +65,7 @@ export const POST = withAuth('POST', async (req, session) => {
         ...(isReporting && {
           reportContent: radiologistReport ?? existing.reportContent,
           radiologistName: session.name,
-          signedTimestamp: new Date().toISOString()
+          signedTimestamp: new Date()
         })
       }
     });
@@ -103,7 +103,7 @@ export const POST = withAuth('POST', async (req, session) => {
           clinicalHistory: clinicalIndication || clinicalHistory || 'Routine clinical investigation',
           pregnancyScreened: Boolean(pregnancyScreened),
           orderedBy: session.name,
-          orderTimestamp: new Date().toISOString(),
+          orderTimestamp: new Date(),
           status: status || 'Ordered',
           pacsAccessionNo,
           imageUrls: Array.isArray(imageUrls) ? imageUrls : [],

@@ -34,7 +34,36 @@ export function redact(url: string): string {
 /** Any string map — `process.env`, a parsed .env file, or a test fixture. */
 export type EnvSource = Record<string, string | undefined>;
 
+/**
+ * Reads `.env` into process.env for entry points that Next.js and the Prisma
+ * CLI do not load it for — running `tsx prisma/seed.ts` directly, for example.
+ * Existing values always win, so it never overrides a real environment.
+ */
+function loadDotEnvOnce(): void {
+  if (process.env.DATABASE_URL || process.env.DATABASE_URL_CLOUD || process.env.DATABASE_URL_LOCAL) return;
+
+  try {
+    // Required lazily so bundlers targeting the browser never see `node:fs`.
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    const { join } = require('node:path') as typeof import('node:path');
+
+    const contents = readFileSync(join(process.cwd(), '.env'), 'utf8');
+    for (const line of contents.split('\n')) {
+      const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/i);
+      if (!match) continue;
+      const [, key, rawValue] = match;
+      if (process.env[key] === undefined) {
+        process.env[key] = rawValue.replace(/^["']|["']$/g, '');
+      }
+    }
+  } catch {
+    // No .env — rely on the ambient environment.
+  }
+}
+
 export function resolveDatasource(env: EnvSource = process.env): ResolvedDatasource {
+  if (env === process.env) loadDotEnvOnce();
+
   const target = (env.DATABASE_TARGET || '').trim().toLowerCase();
 
   if (target !== 'local' && target !== 'cloud') {

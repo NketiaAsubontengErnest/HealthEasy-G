@@ -60,7 +60,7 @@ export const GET = withAuth('GET', async () => {
   const now = Date.now();
   const lowStockCount = lowStockBatches.filter((b) => b.quantityInStock <= b.reorderLevel).length;
   const expiringBatchCount = lowStockBatches.filter((b) => {
-    const expiry = new Date(b.expiryDate).getTime();
+    const expiry = b.expiryDate ? b.expiryDate.getTime() : NaN;
     return !Number.isNaN(expiry) && expiry - now < 90 * 86_400_000;
   }).length;
 

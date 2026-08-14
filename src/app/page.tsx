@@ -1,563 +1,669 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { IconHeartHandshake } from '@tabler/icons-react';
+import {
+  IconArrowNarrowRight,
+  IconHeartHandshake,
+  IconMail,
+  IconMapPin,
+  IconMenu2,
+  IconPhone,
+  IconX
+} from '@tabler/icons-react';
+import Reveal from './components/home/Reveal';
+import ThemeToggle from './components/home/ThemeToggle';
+
+/* ------------------------------------------------------------------ *
+ * Content
+ * ------------------------------------------------------------------ */
+
+const NAV_LINKS = [
+  { id: 'about', label: 'Why it exists' },
+  { id: 'platform', label: 'Platform' },
+  { id: 'team', label: 'Team' },
+  { id: 'contact', label: 'Contact' }
+];
+
+const COMPLIANCE = [
+  { short: 'HeFRA', full: 'Health Facilities Regulatory Agency licensing' },
+  { short: 'GHS', full: 'Ghana Health Service service standards' },
+  { short: 'NHIA G-DRG', full: 'National Health Insurance tariff and claims' },
+  { short: 'DHIMS2', full: 'District Health Information Management System' },
+  { short: 'DPC', full: 'Data Protection Commission, Act 843' }
+];
+
+const PRINCIPLES = [
+  {
+    number: '01',
+    title: 'One patient, one record',
+    body: 'A Ghana Card number resolves to a single Master Patient Index entry. Registration refuses a duplicate card outright and offers a merge instead, so the same person cannot accumulate three folders across three visits.'
+  },
+  {
+    number: '02',
+    title: 'The record follows the patient',
+    body: 'Triage vitals, the consultation note, the laboratory request, the dispensed medicine and the bill are one chain. A clinician opening a folder sees what the last department actually did, not a summary someone retyped.'
+  },
+  {
+    number: '03',
+    title: 'Authority is enforced, not advertised',
+    body: 'Nineteen roles, each with an explicit set of permissions and an explicit set of things it may not do. Those limits are checked on the server for every request — including the rule that bars the system administrator from clinical records.'
+  },
+  {
+    number: '04',
+    title: 'Claims are built from care, not retyped',
+    body: 'An NHIS claim line is assembled from the diagnosis the doctor coded and the tariff attached to the service. Demographics come from the patient record, so a claim can never disagree with the folder it came from.'
+  }
+];
+
+const MODULES = [
+  { group: 'Front office', items: ['Patient registration & MPI', 'Ghana Card and NHIS validation', 'Appointments and queue routing', 'Records retrieval and merge'] },
+  { group: 'Clinical care', items: ['Triage vitals and ESI scoring', 'OPD and emergency consultation', 'ICD-10 coding and orders', 'Discharge and sick-leave notes'] },
+  { group: 'Diagnostics', items: ['Laboratory orders and worklist', 'Specimen barcoding and results', 'PACS imaging requests', 'Radiology reporting and sign-off'] },
+  { group: 'Wards & theatre', items: ['Bed board and occupancy', 'Admission, discharge, transfer', 'Medication administration chart', 'Theatre preparation'] },
+  { group: 'Pharmacy & stores', items: ['FEFO batch stock control', 'Prescription verification', 'Dispensing and counselling', 'Procurement and central stores'] },
+  { group: 'Revenue & governance', items: ['Cashier shifts and receipts', 'NHIS G-DRG claim batches', 'DHIMS2 monthly returns', 'Immutable audit trail'] }
+];
+
+const NUMBERS = [
+  { value: '19', label: 'Staff roles', note: 'each with enforced limits' },
+  { value: '24', label: 'Feature modules', note: 'front desk to claims' },
+  { value: '3', label: 'Facility branches', note: 'managed from one system' },
+  { value: '100%', label: 'Server-side RBAC', note: 'no browser-trusted access' }
+];
+
+const LEAD = {
+  name: 'Ernest Nketia Asubonterng',
+  id: '22424715',
+  role: 'Lead System Architect & AI Integrator',
+  focus:
+    'Software architecture, the Ollama clinical assistant and GSTG rule engine, Next.js App Router, PostgreSQL and Prisma, HeFRA/GHS compliance, and multi-facility management.'
+};
+
+const TEAM = [
+  { name: 'Nana Kwabena Asare', id: '22424817', role: 'Software Engineer', focus: 'Clinical EMR consultation and ICD-10 diagnosis engine' },
+  { name: 'Casper Kosi Asense', id: '22425080', role: 'Software Engineer', focus: 'Master Patient Index, Ghana Card and NHIS validation' },
+  { name: 'Richard Gyebi', id: '22424822', role: 'FinTech & Billing Engineer', focus: 'Cashier shifts, mobile money payments and NHIS G-DRG claims' },
+  { name: 'Aubrey Owusu Amoah', id: '22424666', role: 'Senior Software Engineer', focus: 'PACS radiology orders and diagnostic workflows' },
+  { name: 'Thomas Nii Armah Okai', id: '22425782', role: 'Senior Software Engineer', focus: 'Pharmacy FEFO stock control and prescription dispensing' },
+  { name: 'Abubakari Zubeiru', id: '22425115', role: 'QA & Security Engineer', focus: 'Inpatient bed management and DPC audit-log compliance' },
+  { name: 'Frank Tandoh', id: '22425049', role: 'UI/UX & Frontend Engineer', focus: 'Responsive layouts, design system and accessibility' }
+];
+
+/** Rows for the hero call board. */
+const QUEUE_PREVIEW = [
+  { ticket: 'TRG-014', name: 'A. Serwaa Akoto', at: 'Triage station 1', state: 'In triage', tone: 'amber' as const },
+  { ticket: 'OPD-032', name: 'K. Owusu Ansah', at: 'Consulting room 2', state: 'With doctor', tone: 'green' as const },
+  { ticket: 'LAB-009', name: 'A. Nyarko', at: 'Phlebotomy bay', state: 'Waiting', tone: 'slate' as const },
+  { ticket: 'PHM-021', name: 'Y. Addo-Danquah', at: 'Dispensary 1', state: 'Ready', tone: 'green' as const }
+];
+
+const TONE_STYLES = {
+  amber: 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25',
+  green: 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25',
+  slate: 'bg-stone-100 text-stone-600 ring-stone-200 dark:bg-white/5 dark:text-stone-300 dark:ring-white/10'
+};
+
+/* ------------------------------------------------------------------ *
+ * Page
+ * ------------------------------------------------------------------ */
 
 export default function HomePage() {
-  const [activeSection, setActiveSection] = useState<string>('home');
+  const [activeSection, setActiveSection] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const sections = ['home', 'about', 'services', 'team', 'contact'];
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 180;
-      for (const sectionId of sections) {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          const top = element.offsetTop;
-          const height = element.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
-            setActiveSection(sectionId);
-            break;
-          }
-        }
+      setScrolled(window.scrollY > 8);
+
+      const marker = window.scrollY + 200;
+      let current = '';
+      for (const { id } of NAV_LINKS) {
+        const element = document.getElementById(id);
+        if (element && marker >= element.offsetTop) current = id;
       }
+      setActiveSection(current);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#050d1a] text-white overflow-x-hidden scroll-smooth">
-      {/* ── Top Navigation Bar ── */}
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/5 backdrop-blur-xl bg-[#050d1a]/85">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="#home" onClick={() => setActiveSection('home')} className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-[14px] bg-[#00b589] text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0 group-hover:scale-105 transition-transform duration-200">
-              <IconHeartHandshake size={22} stroke={2.2} />
-            </div>
-            <div className="flex flex-col justify-center">
-              <div className="flex items-center leading-none">
-                <span className="text-xl font-extrabold tracking-tight text-white">
-                  HealthEasy
-                </span>
-                <span className="text-xl font-black text-[#ff9600] ml-0.5">-G</span>
-              </div>
-              <span className="text-[9px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">
-                GHANA HOSPITAL PLATFORM
+    <div className="min-h-screen bg-[#fbfaf8] text-stone-900 antialiased dark:bg-[#0b0f0e] dark:text-stone-100">
+      {/* ── Navigation ─────────────────────────────────────────── */}
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
+          scrolled
+            ? 'border-b border-stone-200/80 bg-[#fbfaf8]/85 backdrop-blur-md dark:border-white/10 dark:bg-[#0b0f0e]/85'
+            : 'border-b border-transparent'
+        }`}
+      >
+        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0d6b4e] text-white">
+              <IconHeartHandshake size={21} stroke={2} />
+            </span>
+            <span className="leading-none">
+              <span className="block text-[15px] font-extrabold tracking-tight">
+                HealthEasy<span className="text-[#0d6b4e] dark:text-emerald-400">-G</span>
               </span>
-            </div>
+              <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                Hospital Management
+              </span>
+            </span>
           </Link>
 
-          {/* Navigation Links with Active State Indicator */}
-          <div className="hidden md:flex items-center gap-8 text-sm">
-            {[
-              { id: 'home', label: 'Home' },
-              { id: 'about', label: 'About' },
-              { id: 'services', label: 'Services' },
-              { id: 'team', label: 'Team' },
-              { id: 'contact', label: 'Contact' },
-            ].map(({ id, label }) => {
-              const isActive = activeSection === id;
-              return (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  onClick={() => setActiveSection(id)}
-                  className={`transition-all duration-200 py-1 border-b-2 text-sm ${
-                    isActive
-                      ? 'text-emerald-400 border-emerald-400 font-extrabold shadow-xs'
-                      : 'text-slate-300 border-transparent font-semibold hover:text-white hover:border-slate-500'
-                  }`}
-                >
-                  {label}
-                </a>
-              );
-            })}
+          <div className="hidden items-center gap-8 md:flex">
+            {NAV_LINKS.map(({ id, label }) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={`relative text-[13px] font-medium transition-colors ${
+                  activeSection === id
+                    ? 'text-stone-900 dark:text-white'
+                    : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white'
+                }`}
+              >
+                {label}
+                {activeSection === id && (
+                  <span className="absolute -bottom-1.5 left-0 h-px w-full bg-[#0d6b4e] dark:bg-emerald-400" />
+                )}
+              </a>
+            ))}
           </div>
 
-          {/* Enter HMS Button */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle />
             <Link
               href="/auth/login"
-              className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
-              style={{
-                background: 'linear-gradient(135deg,#16a34a,#0ea5e9)',
-                boxShadow: '0 0 20px rgba(22,163,74,0.3)',
-              }}
+              className="hidden rounded-full bg-stone-900 px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b4e] sm:inline-flex dark:bg-white dark:text-stone-900 dark:hover:bg-emerald-400"
             >
-              Enter HMS →
+              Staff sign in
             </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-300 text-stone-700 md:hidden dark:border-white/15 dark:text-stone-200"
+            >
+              {menuOpen ? <IconX size={17} /> : <IconMenu2 size={17} />}
+            </button>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* ── 1. HOME / HERO SECTION ── */}
-      <section id="home" className="relative pt-36 pb-24 px-6 text-center overflow-hidden">
-        {/* Background glow blobs */}
+        {menuOpen && (
+          <div className="border-t border-stone-200 bg-[#fbfaf8] px-6 py-4 md:hidden dark:border-white/10 dark:bg-[#0b0f0e]">
+            <ul className="space-y-3">
+              {NAV_LINKS.map(({ id, label }) => (
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="block text-sm font-medium text-stone-600 dark:text-stone-300"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+              <li>
+                <Link
+                  href="/auth/login"
+                  className="inline-flex rounded-full bg-stone-900 px-4 py-2 text-[13px] font-semibold text-white dark:bg-white dark:text-stone-900"
+                >
+                  Staff sign in
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
+      </header>
+
+      {/* ── Hero ───────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 pt-32 pb-20 sm:pt-40 sm:pb-28">
+        {/* A single soft wash rather than a full-bleed gradient. */}
         <div
-          className="absolute top-16 left-1/2 -translate-x-1/2 w-[750px] h-[420px] rounded-full opacity-20 blur-[130px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle,#16a34a 0%,#0ea5e9 60%,transparent 100%)' }}
+          aria-hidden
+          className="pointer-events-none absolute -top-40 right-[-10%] h-[420px] w-[420px] rounded-full bg-[#0d6b4e]/[0.07] blur-3xl dark:bg-emerald-500/10"
         />
 
-        <div className="relative max-w-4xl mx-auto space-y-6">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-widest">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Ghana Health Service · HeFRA · NHIS &amp; Multi-Hospital Compliant
+        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <Reveal>
+              <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                <span className="h-px w-8 bg-[#0d6b4e] dark:bg-emerald-400" />
+                Ridge Regional Hospital, Accra
+              </p>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <h1 className="font-display mt-6 text-[2.6rem] leading-[1.08] tracking-[-0.02em] sm:text-6xl">
+                The whole hospital,
+                <br />
+                <span className="italic text-[#0d6b4e] dark:text-emerald-400">on one record.</span>
+              </h1>
+            </Reveal>
+
+            <Reveal delay={160}>
+              <p className="mt-7 max-w-xl text-[15px] leading-[1.75] text-stone-600 dark:text-stone-300">
+                HealthEasy-G carries a patient from the registration desk through triage,
+                consultation, the laboratory, the pharmacy and the cashier without anyone
+                retyping a name. Built to the standards Ghanaian facilities are actually
+                measured against.
+              </p>
+            </Reveal>
+
+            <Reveal delay={240}>
+              <div className="mt-9 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/auth/login"
+                  className="group inline-flex items-center gap-2 rounded-full bg-[#0d6b4e] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0a5740]"
+                >
+                  Sign in to the portal
+                  <IconArrowNarrowRight
+                    size={18}
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  />
+                </Link>
+                <a
+                  href="#platform"
+                  className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-400 hover:text-stone-900 dark:border-white/15 dark:text-stone-200 dark:hover:border-white/30 dark:hover:text-white"
+                >
+                  See what it covers
+                </a>
+              </div>
+            </Reveal>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight">
-            Multi-Hospital System
-            <br />
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(90deg,#34d399,#38bdf8)' }}
-            >
-              Built for Ghana Healthcare
-            </span>
-          </h1>
+          {/* Live call board — a real product surface, not decoration. */}
+          <Reveal delay={320} className="lg:col-span-5">
+            <div className="rounded-2xl border border-stone-200 bg-white shadow-[0_24px_60px_-32px_rgba(28,25,23,0.35)] dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+              <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3.5 dark:border-white/10">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+                  Patient flow
+                </p>
+                <span className="flex items-center gap-2 text-[11px] font-semibold text-stone-500 dark:text-stone-400">
+                  <span className="hms-live-dot h-1.5 w-1.5 rounded-full bg-[#0d6b4e] dark:bg-emerald-400" />
+                  Live
+                </span>
+              </div>
 
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            HealthEasy-G is an enterprise hospital management ecosystem — unifying patient MPI, AI clinical decision support, LIS, PACS radiology, FEFO pharmacy, NHIS G-DRG claims, and DPC audit compliance across multiple facilities.
-          </p>
+              <ul className="divide-y divide-stone-100 dark:divide-white/5">
+                {QUEUE_PREVIEW.map((row, index) => (
+                  <li
+                    key={row.ticket}
+                    className="hms-queue-row flex items-center justify-between gap-3 px-5 py-3.5"
+                    style={{ animationDelay: `${index * 900}ms` }}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-mono text-[11px] font-semibold text-stone-400 dark:text-stone-500">
+                        {row.ticket}
+                      </p>
+                      <p className="truncate text-[13px] font-semibold">{row.name}</p>
+                      <p className="truncate text-[11px] text-stone-500 dark:text-stone-400">{row.at}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ${TONE_STYLES[row.tone]}`}
+                    >
+                      {row.state}
+                    </span>
+                  </li>
+                ))}
+              </ul>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link
-              href="/auth/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl font-extrabold text-base text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-2xl"
-              style={{
-                background: 'linear-gradient(135deg,#16a34a,#0ea5e9)',
-                boxShadow: '0 8px 40px rgba(22,163,74,0.35)',
-              }}
-            >
-              Launch HMS Dashboard
-            </Link>
-            <a
-              href="#about"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base text-slate-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-200"
-            >
-              Explore Architecture
-            </a>
+              <p className="border-t border-stone-200 px-5 py-3 text-[11px] text-stone-500 dark:border-white/10 dark:text-stone-400">
+                Every movement is written to the audit trail with the staff member who made it.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Compliance strip ───────────────────────────────────── */}
+      <section className="border-y border-stone-200 px-6 py-7 dark:border-white/10">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400 dark:text-stone-500">
+              Aligned to
+            </p>
+            <ul className="mt-4 flex flex-wrap items-center gap-x-10 gap-y-4">
+              {COMPLIANCE.map(({ short, full }) => (
+                <li key={short} title={full} className="group">
+                  <span className="font-display text-lg tracking-tight text-stone-700 transition-colors group-hover:text-[#0d6b4e] dark:text-stone-200 dark:group-hover:text-emerald-400">
+                    {short}
+                  </span>
+                  <span className="ml-2 hidden text-[11px] text-stone-400 lg:inline dark:text-stone-500">
+                    {full}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Why it exists ──────────────────────────────────────── */}
+      <section id="about" className="px-6 py-24 sm:py-28">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-14 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <Reveal>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                  Why it exists
+                </p>
+                <h2 className="font-display mt-5 text-3xl leading-[1.15] tracking-[-0.015em] sm:text-[2.5rem]">
+                  Paper folders lose people.
+                </h2>
+                <p className="mt-5 text-[15px] leading-[1.75] text-stone-600 dark:text-stone-300">
+                  A patient seen three times can hold three folders, three NHIS numbers and
+                  three versions of an allergy list. Four decisions shape this system, and
+                  each is enforced in code rather than in a policy document.
+                </p>
+              </Reveal>
+            </div>
+
+            <div className="lg:col-span-8">
+              <dl className="divide-y divide-stone-200 dark:divide-white/10">
+                {PRINCIPLES.map(({ number, title, body }, index) => (
+                  <Reveal key={number} delay={index * 90} className="grid gap-4 py-7 sm:grid-cols-12">
+                    <dt className="sm:col-span-4">
+                      <span className="font-mono text-[11px] font-semibold text-[#0d6b4e] dark:text-emerald-400">
+                        {number}
+                      </span>
+                      <p className="mt-1.5 text-[15px] font-bold tracking-tight">{title}</p>
+                    </dt>
+                    <dd className="text-[14px] leading-[1.72] text-stone-600 sm:col-span-8 dark:text-stone-300">
+                      {body}
+                    </dd>
+                  </Reveal>
+                ))}
+              </dl>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Quick Stats Strip ── */}
-      <section className="border-y border-white/5 bg-white/[0.02] py-10">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          {[
-            { value: '19', label: 'Staff Roles Supported', color: '#34d399' },
-            { value: '16', label: 'Feature Modules', color: '#38bdf8' },
-            { value: '100%', label: 'HeFRA & NHIS Aligned', color: '#a78bfa' },
-            { value: 'AI-Powered', label: 'Ollama Assistant', color: '#fb923c' },
-          ].map(({ value, label, color }) => (
-            <div key={label} className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black" style={{ color }}>
-                {value}
+      {/* ── Platform ───────────────────────────────────────────── */}
+      <section id="platform" className="border-t border-stone-200 px-6 py-24 sm:py-28 dark:border-white/10">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                Platform
               </p>
-              <p className="text-xs text-slate-500 font-medium">{label}</p>
+              <h2 className="font-display mt-5 text-3xl leading-[1.15] tracking-[-0.015em] sm:text-[2.5rem]">
+                Every department, one chain of custody.
+              </h2>
             </div>
+          </Reveal>
+
+          <div className="mt-14 grid gap-x-12 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">
+            {MODULES.map(({ group, items }, index) => (
+              <Reveal key={group} delay={index * 70}>
+                <h3 className="border-b border-stone-200 pb-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500 dark:border-white/10 dark:text-stone-400">
+                  {group}
+                </h3>
+                <ul className="mt-4 space-y-2.5">
+                  {items.map((item) => (
+                    <li key={item} className="flex gap-3 text-[14px] leading-relaxed text-stone-700 dark:text-stone-300">
+                      <span
+                        aria-hidden
+                        className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-[#0d6b4e] dark:bg-emerald-400"
+                      />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Numbers ────────────────────────────────────────────── */}
+      <section className="border-y border-stone-200 px-6 py-16 dark:border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          {NUMBERS.map(({ value, label, note }, index) => (
+            <Reveal
+              key={label}
+              delay={index * 80}
+              className="border-stone-200 lg:border-l lg:pl-8 lg:first:border-l-0 lg:first:pl-0 dark:border-white/10"
+            >
+              <p className="font-display text-4xl tracking-tight sm:text-5xl">{value}</p>
+              <p className="mt-2 text-[13px] font-bold tracking-tight">{label}</p>
+              <p className="mt-0.5 text-[12px] text-stone-500 dark:text-stone-400">{note}</p>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ── 2. ABOUT SECTION ── */}
-      <section id="about" className="py-24 px-6 border-b border-white/5 bg-white/[0.01]">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-              About HealthEasy-G
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-              Transforming Hospital Operations Across Ghana
-            </h2>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              HealthEasy-G was designed specifically for Ghanaian health facilities — addressing real-world challenges in patient registration, long OPD queues, manual lab paper trails, insurance claim rejections, and multi-tenant hospital branch administration.
-            </p>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Our system enforces strict **Role-Based Access Control (RBAC)** across 19 distinct staff roles, integrates local payment methods like **MTN MoMo** and **Telecel Cash**, and provides an **AI Clinical Assistant** trained on Ghana Standard Treatment Guidelines (GSTG).
-            </p>
-
-            {/* Feature highlights */}
-            <div className="grid grid-cols-2 gap-4 pt-2 text-xs font-bold text-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span> Multi-Hospital Branch Management
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span> Ghana Card (NIA) &amp; NHIS Validation
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span> AI Medicine Suggestion Engine
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span> DHIMS2 &amp; DPC Audit Compliance
-              </div>
+      {/* ── Team ───────────────────────────────────────────────── */}
+      <section id="team" className="px-6 py-24 sm:py-28">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                CSCD602 Capstone · Advance Software Development
+              </p>
+              <h2 className="font-display mt-5 text-3xl leading-[1.15] tracking-[-0.015em] sm:text-[2.5rem]">
+                The people who built it.
+              </h2>
             </div>
-          </div>
+          </Reveal>
 
-          {/* Cards Visual */}
-          <div className="space-y-4">
-            <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-emerald-400">Super Admin Multi-Tenancy</span>
-                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono">
-                  GAR-RIDGE-01
+          <Reveal delay={90}>
+            <div className="mt-12 border-l-2 border-[#0d6b4e] py-1 pl-6 dark:border-emerald-400">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0d6b4e] dark:text-emerald-400">
+                Lead developer
+              </p>
+              <h3 className="font-display mt-2 text-2xl tracking-tight sm:text-3xl">{LEAD.name}</h3>
+              <p className="mt-1 text-[13px] font-semibold text-stone-700 dark:text-stone-200">
+                {LEAD.role}
+                <span className="ml-2 font-mono text-[11px] font-normal text-stone-400 dark:text-stone-500">
+                  {LEAD.id}
                 </span>
-              </div>
-              <p className="text-sm font-extrabold text-white">Ridge Regional Hospital &amp; Kumasi South Annex</p>
-              <p className="text-xs text-slate-500">
-                Super Admins can register new facilities, assign directors, monitor HeFRA licensing status, and switch active hospital contexts globally.
+              </p>
+              <p className="mt-3 max-w-2xl text-[14px] leading-[1.72] text-stone-600 dark:text-stone-300">
+                {LEAD.focus}
               </p>
             </div>
+          </Reveal>
 
-            <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-sky-400">Clinical Decision Support</span>
-                <span className="bg-sky-500/20 text-sky-300 text-[10px] px-2 py-0.5 rounded font-mono">
-                  AI Assistant
-                </span>
-              </div>
-              <p className="text-sm font-extrabold text-white">GSTG-Aligned AI Prescribing Partner</p>
-              <p className="text-xs text-slate-500">
-                Analyses patient ICD-10 diagnoses, vitals, lab results, allergies, and real-time hospital pharmacy stock to suggest appropriate medications for doctor approval.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. SERVICES SECTION ── */}
-      <section id="services" className="py-24 px-6 border-b border-white/5">
-        <div className="max-w-6xl mx-auto space-y-14">
-          <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20">
-              End-to-End Hospital Services
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Complete Clinical &amp; Administrative Services
-            </h2>
-            <p className="text-slate-400 max-w-xl mx-auto text-sm">
-              Integrated modules connecting every department in your hospital from reception to finance.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              {
-                code: 'MPI',
-                title: 'Master Patient Index (MPI)',
-                desc: 'Patient registration with Ghana Card (NIA), NHIS number verification, duplicate detection, and demographic updates.',
-                color: '#34d399',
-              },
-              {
-                code: 'EMR',
-                title: 'AI Consultation & EMR',
-                desc: 'OPD notes, ICD-10 coding, clinical orders, and AI medicine suggestions powered by GSTG Clinical Assistant.',
-                color: '#38bdf8',
-              },
-              {
-                code: 'LIS',
-                title: 'Laboratory Information System (LIS)',
-                desc: 'Specimen barcode tracking, lab result verification, critical value alerts, and hematology/biochemistry logs.',
-                color: '#a78bfa',
-              },
-              {
-                code: 'PACS',
-                title: 'Radiology & PACS Imaging',
-                desc: 'X-Ray, Ultrasound, CT, and MRI order workflows, DICOM image attachment, and verified radiologist reporting.',
-                color: '#fb923c',
-              },
-              {
-                code: 'FEFO',
-                title: 'Pharmacy & FEFO Inventory',
-                desc: 'First-Expired-First-Out drug dispensing, controlled substance logs, reorder alerts, and automated stock deduction.',
-                color: '#f472b6',
-              },
-              {
-                code: 'ADT',
-                title: 'Inpatient Wards & Beds (ADT)',
-                desc: 'Real-time bed availability board, bed transfer management, fluid balance charts, and nursing MAR scheduling.',
-                color: '#34d399',
-              },
-              {
-                code: 'BILL',
-                title: 'Billing & Cashier Services',
-                desc: 'MoMo, Cash, and Card payments, invoice auto-generation, shift reconciliation, and itemized patient receipts.',
-                color: '#38bdf8',
-              },
-              {
-                code: 'G-DRG',
-                title: 'NHIS G-DRG Claims Engine',
-                desc: 'Tariff code mapping, CLAIM-it batch file export, NHIA audit validation, and claim status reconciliation.',
-                color: '#a78bfa',
-              },
-              {
-                code: 'DPC',
-                title: 'Security & DPC Audit Trail',
-                desc: 'Immutable, IP-stamped audit logs compliant with Ghana Data Protection Commission standards across all 19 roles.',
-                color: '#fb923c',
-              },
-            ].map(({ code, title, desc }) => (
-              <div
-                key={title}
-                className="group relative p-6 rounded-2xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-xs flex items-center justify-center mb-3">
-                  {code}
-                </div>
-                <h3 className="font-extrabold text-white text-base mb-2">{title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 4. TEAM SECTION ── */}
-      <section id="team" className="py-24 px-6 border-b border-white/5 bg-white/[0.01]">
-        <div className="max-w-6xl mx-auto space-y-14">
-          <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-              CSCD602 Capstone Project Development Team
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Advance Software Development Group
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto text-sm">
-              Meet the software engineering team behind HealthEasy-G HMS — building an enterprise healthcare system for Ghana.
-            </p>
-          </div>
-
-          {/* HIGHLIGHTED LEAD DEVELOPER (RANK 1) */}
-          <div className="max-w-3xl mx-auto">
-            <div className="p-8 rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-sky-950/40 shadow-2xl relative overflow-hidden group hover:border-emerald-400 transition-all duration-300">
-              <div className="absolute top-0 right-0 bg-gradient-to-l from-emerald-500 to-teal-600 text-white font-extrabold text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl shadow-lg">
-                Lead Developer &amp; AI Integrator
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-sky-500 p-1 flex-shrink-0 shadow-xl">
-                  <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center font-extrabold text-emerald-400 text-lg">
-                    LEAD
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-center sm:text-left flex-1">
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <h3 className="text-2xl font-black text-white">Ernest Nketia Asubonterng</h3>
-                    <span className="text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                      ID: 22424715
-                    </span>
-                  </div>
-                  <p className="text-emerald-400 font-extrabold text-sm tracking-wide">
-                    Lead System Architect, AI Integrator &amp; Software Engineer
-                  </p>
-                  <p className="text-slate-300 text-xs leading-relaxed">
-                    Lead Developer directing software architecture, Ollama AI Clinical Assistant &amp; GSTG Engine integration, Next.js 16 App Router, PostgreSQL / Prisma ORM, HeFRA/GHS compliance, and multi-hospital system management.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* GROUP DEVELOPERS GRID */}
-          <div className="flex flex-wrap justify-center gap-5">
-            {[
-              {
-                name: 'Nana Kwabena Asare',
-                id: '22424817',
-                role: 'Software Engineer',
-                specialty: 'Clinical EMR Consultation & ICD-10 Diagnosis Engine',
-                tag: 'Clinical',
-              },
-              {
-                name: 'Casper Kosi Asense',
-                id: '22425080',
-                role: 'Software Engineer',
-                specialty: 'Master Patient Index (MPI), Ghana Card & NHIS Validation',
-                tag: 'MPI Core',
-              },
-              {
-                name: 'Richard Gyebi',
-                id: '22424822',
-                role: 'FinTech & Billing Engineer',
-                specialty: 'Cashier Shift Systems, MoMo Payments & NHIS G-DRG Claims',
-                tag: 'Billing',
-              },
-              {
-                name: 'Aubrey Owusu Amoah',
-                id: '22424666',
-                role: 'Senior Software Engineer',
-                specialty: 'PACS Radiology Imaging Orders & Diagnostic Workflows',
-                tag: 'Radiology',
-              },
-              {
-                name: 'Thomas Nii Armah Okai',
-                id: '22425782',
-                role: 'Senior Software Engineer',
-                specialty: 'Pharmacy FEFO Stock Inventory & Prescription Dispensing',
-                tag: 'Pharmacy',
-              },
-              {
-                name: 'Abubakari Zubeiru',
-                id: '22425115',
-                role: 'QA & Security Engineer',
-                specialty: 'Inpatient Bed Management (ADT) & DPC Audit Log Compliance',
-                tag: 'Wards & Security',
-              },
-              {
-                name: 'Frank Tandoh',
-                id: '22425049',
-                role: 'UI/UX & Frontend Engineer',
-                specialty: 'Responsive Layouts, Glassmorphism Aesthetics & Accessibility',
-                tag: 'UI/UX',
-              },
-            ].map(({ name, id, role, specialty, tag }) => (
-              <div
+          <ul className="mt-12 divide-y divide-stone-200 dark:divide-white/10">
+            {TEAM.map(({ name, id, role, focus }, index) => (
+              <Reveal
+                as="li"
                 key={id}
-                className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.33%-14px)] p-5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3 hover:border-emerald-500/40 hover:bg-white/[0.05] transition-all duration-300"
+                delay={index * 60}
+                className="grid gap-2 py-5 sm:grid-cols-12 sm:gap-6"
               >
-                <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-white/10 flex items-center justify-center text-xs font-bold text-emerald-400">
-                    DEV
-                  </div>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {tag}
-                  </span>
+                <div className="sm:col-span-4">
+                  <p className="text-[14px] font-bold tracking-tight">{name}</p>
+                  <p className="font-mono text-[11px] text-stone-400 dark:text-stone-500">{id}</p>
                 </div>
-                <div>
-                  <h3 className="font-extrabold text-white text-sm leading-snug">{name}</h3>
-                  <p className="text-[11px] font-mono text-slate-400">ID: {id}</p>
-                  <p className="text-xs font-bold text-sky-400 mt-1">{role}</p>
-                </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed pt-2 border-t border-white/5">
-                  {specialty}
+                <p className="text-[13px] font-semibold text-stone-700 sm:col-span-3 dark:text-stone-200">
+                  {role}
                 </p>
-              </div>
+                <p className="text-[13px] leading-relaxed text-stone-500 sm:col-span-5 dark:text-stone-400">
+                  {focus}
+                </p>
+              </Reveal>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* ── 5. CONTACT SECTION ── */}
-      <section id="contact" className="py-24 px-6">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-              Get in Touch
+      {/* ── Contact ────────────────────────────────────────────── */}
+      <section id="contact" className="border-t border-stone-200 px-6 py-24 sm:py-28 dark:border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <Reveal>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">
+                Contact
+              </p>
+              <h2 className="font-display mt-5 text-3xl leading-[1.15] tracking-[-0.015em] sm:text-[2.5rem]">
+                Talk to the deployment team.
+              </h2>
+              <p className="mt-5 text-[15px] leading-[1.75] text-stone-600 dark:text-stone-300">
+                For facility installations, HeFRA licensing alignment and Ghana Health
+                Service integrations.
+              </p>
+
+              <ul className="mt-9 space-y-4 text-[14px]">
+                <li className="flex items-start gap-3">
+                  <IconMapPin size={17} className="mt-0.5 shrink-0 text-[#0d6b4e] dark:text-emerald-400" />
+                  <span className="text-stone-600 dark:text-stone-300">
+                    Castle Road, Ridge, Accra
+                    <span className="mt-0.5 block font-mono text-[11px] text-stone-400 dark:text-stone-500">
+                      GA-029-3829
+                    </span>
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <IconPhone size={17} className="shrink-0 text-[#0d6b4e] dark:text-emerald-400" />
+                  <a href="tel:+233302228311" className="text-stone-600 hover:underline dark:text-stone-300">
+                    +233 30 222 8311
+                  </a>
+                </li>
+                <li className="flex items-center gap-3">
+                  <IconMail size={17} className="shrink-0 text-[#0d6b4e] dark:text-emerald-400" />
+                  <a href="mailto:info@ridgehms.gh" className="text-stone-600 hover:underline dark:text-stone-300">
+                    info@ridgehms.gh
+                  </a>
+                </li>
+              </ul>
+            </Reveal>
+          </div>
+
+          <Reveal delay={120} className="lg:col-span-7">
+            <ContactForm />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="border-t border-stone-200 px-6 py-10 dark:border-white/10">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d6b4e] text-white">
+              <IconHeartHandshake size={17} stroke={2} />
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-              Ready to Upgrade Your Health Facility?
-            </h2>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Contact our deployment team for custom hospital installations, HeFRA licensing alignment, and GHS system integrations across Ghana.
+            <p className="text-[13px] font-semibold">
+              HealthEasy<span className="text-[#0d6b4e] dark:text-emerald-400">-G</span>
+              <span className="ml-2 font-normal text-stone-500 dark:text-stone-400">
+                Hospital Management System
+              </span>
             </p>
-
-            <div className="space-y-4 text-xs text-slate-300">
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="font-bold text-emerald-400 text-xs">LOCATION</span>
-                <div>
-                  <p className="font-bold text-white">Primary Demo Facility</p>
-                  <p className="text-slate-400">Ridge Regional Hospital, Castle Road, Ridge, Accra</p>
-                  <p className="text-emerald-400 font-mono text-[11px]">GPS: GA-029-3829</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="font-bold text-sky-400 text-xs">PHONE</span>
-                <div>
-                  <p className="font-bold text-white">System Support Hotline</p>
-                  <p className="text-slate-400">+233 30 222 8311 / +233 32 206 1420</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="font-bold text-amber-400 text-xs">EMAIL</span>
-                <div>
-                  <p className="font-bold text-white">Email Enquiries</p>
-                  <p className="text-slate-400">support@healtheasy-g.gh / info@ridgehms.gh</p>
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* Contact Form Card */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] space-y-4">
-            <h3 className="text-xl font-extrabold text-white">Request Facility Onboarding</h3>
-            <p className="text-xs text-slate-400">
-              Submit your hospital details to schedule a demonstration with our technical team.
-            </p>
-
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Facility Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Korle-Bu Teaching Hospital Annex"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Region</label>
-                  <select className="w-full px-3.5 py-2.5 rounded-xl bg-[#0b172a] border border-white/10 text-white focus:outline-none focus:border-emerald-500">
-                    <option>Greater Accra</option>
-                    <option>Ashanti</option>
-                    <option>Western</option>
-                    <option>Northern</option>
-                    <option>Volta</option>
-                    <option>Eastern</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Facility Type</label>
-                  <select className="w-full px-3.5 py-2.5 rounded-xl bg-[#0b172a] border border-white/10 text-white focus:outline-none focus:border-emerald-500">
-                    <option>Regional Hospital</option>
-                    <option>Teaching / Tertiary</option>
-                    <option>District Hospital</option>
-                    <option>Private Specialist</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Contact Email</label>
-                <input
-                  type="email"
-                  placeholder="director@hospital.gh"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-xl font-extrabold text-sm text-white transition-all duration-200 hover:scale-[1.02] active:scale-98"
-                style={{
-                  background: 'linear-gradient(135deg,#16a34a,#0ea5e9)',
-                  boxShadow: '0 4px 20px rgba(22,163,74,0.3)',
-                }}
-              >
-                Submit Onboarding Request →
-              </button>
-            </form>
-          </div>
+          <p className="text-[12px] text-stone-500 dark:text-stone-400">
+            CSCD602 Capstone Project · University of Ghana · 2026
+          </p>
         </div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/5 py-8 px-6 text-center">
-        <p className="text-xs text-slate-600">
-          © 2026 HealthEasy-G HMS · Built with Next.js 15 · Advance Software Development Group Project
-        </p>
       </footer>
-    </main>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Contact form
+ * ------------------------------------------------------------------ */
+
+function ContactForm() {
+  const [submitted, setSubmitted] = useState(false);
+
+  const inputClass =
+    'w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-stone-400 focus:border-[#0d6b4e] focus:ring-2 focus:ring-[#0d6b4e]/15 dark:border-white/15 dark:bg-white/[0.04] dark:placeholder:text-stone-500 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/20';
+
+  const labelClass = 'mb-1.5 block text-[12px] font-semibold text-stone-600 dark:text-stone-300';
+
+  if (submitted) {
+    return (
+      <div className="flex h-full min-h-[280px] flex-col items-start justify-center rounded-2xl border border-stone-200 bg-white p-8 dark:border-white/10 dark:bg-white/[0.03]">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0d6b4e]/10 text-[#0d6b4e] dark:bg-emerald-400/10 dark:text-emerald-400">
+          <IconMail size={19} />
+        </span>
+        <h3 className="font-display mt-4 text-2xl tracking-tight">Enquiry noted.</h3>
+        <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-stone-600 dark:text-stone-300">
+          This is a capstone demonstration, so nothing was sent. Reach the team directly at{' '}
+          <a href="mailto:info@ridgehms.gh" className="font-semibold text-[#0d6b4e] hover:underline dark:text-emerald-400">
+            info@ridgehms.gh
+          </a>
+          .
+        </p>
+        <button
+          type="button"
+          onClick={() => setSubmitted(false)}
+          className="mt-6 text-[13px] font-semibold text-stone-600 underline underline-offset-4 hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
+        >
+          Write another
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        setSubmitted(true);
+      }}
+      className="rounded-2xl border border-stone-200 bg-white p-7 dark:border-white/10 dark:bg-white/[0.03]"
+    >
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label className={labelClass} htmlFor="contact-facility">
+            Facility name
+          </label>
+          <input id="contact-facility" name="facility" required placeholder="Ridge Regional Hospital" className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="contact-region">
+            Region
+          </label>
+          <input id="contact-region" name="region" required placeholder="Greater Accra" className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="contact-name">
+            Your name
+          </label>
+          <input id="contact-name" name="name" required placeholder="Dr. Ama Boateng" className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="contact-email">
+            Email
+          </label>
+          <input id="contact-email" name="email" type="email" required placeholder="you@facility.gh" className={inputClass} />
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <label className={labelClass} htmlFor="contact-message">
+          What do you need?
+        </label>
+        <textarea
+          id="contact-message"
+          name="message"
+          rows={4}
+          required
+          placeholder="Bed count, departments to roll out first, and any existing systems to integrate with."
+          className={`${inputClass} resize-none`}
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0d6b4e] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0a5740]"
+      >
+        Send enquiry
+        <IconArrowNarrowRight size={18} />
+      </button>
+
+      <p className="mt-4 text-[12px] text-stone-500 dark:text-stone-400">
+        Capstone demonstration — submissions are not delivered anywhere.
+      </p>
+    </form>
   );
 }

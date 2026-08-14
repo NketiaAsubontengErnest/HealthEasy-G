@@ -24,16 +24,15 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<string>(defaultTheme);
 
+  // The blocking script in `app/layout.tsx` has already put the right class on
+  // <html> before paint. This only syncs React state to that decision, so the
+  // toggle button starts out showing the correct icon.
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('hms_theme') || defaultTheme;
       setThemeState(savedTheme);
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } catch (e) {
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } catch {
       document.documentElement.classList.remove('dark');
     }
   }, [defaultTheme]);

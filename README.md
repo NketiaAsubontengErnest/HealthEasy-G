@@ -108,6 +108,30 @@ claims. Only the two figures the system has no other source for — deaths and
 maternal deliveries — are entered by the records officer and stored in
 `DhimsMonthlyReturn`, exactly as on the paper return.
 
+Dates are real `DATE` and `TIMESTAMP` columns. They were previously stored as
+text, which made every comparison lexical — `"2026-9-1"` sorted after
+`"2026-10-01"`, and an empty string was indistinguishable from a real value.
+`prisma/migrations/001-dates-to-timestamps.sql` converts existing rows in
+place; `parseDate`/`formatDate` in `src/lib/adapters.ts` are the only places
+the conversion to and from the UI's `YYYY-MM-DD` happens.
+
+---
+
+## 🎨 Appearance
+
+**Light is the default theme** across the public site and the staff portal.
+Users can switch to dark from the toggle in the dashboard header or the public
+site's navigation; the choice is stored under `hms_theme` and shared by both.
+
+A small blocking script in `src/app/layout.tsx` applies the saved theme before
+the first paint, so dark-mode users never see a flash of light content on
+navigation.
+
+The public site uses Newsreader for display headings against Manrope for text,
+and its scroll animations are driven by `src/app/components/home/Reveal.tsx` —
+which honours `prefers-reduced-motion` and falls back to showing content if the
+IntersectionObserver never fires.
+
 ---
 
 ## 🔑 Master User Credentials & Login Details

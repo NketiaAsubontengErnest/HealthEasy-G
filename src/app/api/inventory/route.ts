@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
-import { toInventoryItem } from '@/lib/adapters';
+import { toDateOnly, toInventoryItem } from '@/lib/adapters';
 import { withUniqueNumber } from '@/lib/sequence';
 
 export const GET = withAuth('GET', async () => {
@@ -41,13 +41,13 @@ export const POST = withAuth('POST', async (req, session) => {
           category: category || 'General Supply',
           storeLocation: storeLocation || 'Central Store',
           batchNo: batchNo || 'N/A',
-          expiryDate: expiryDate || '',
+          expiryDate: toDateOnly(expiryDate, 'expiry date'),
           quantity: Number(quantity) || 0,
           unit: unit || 'Boxes',
           unitPriceGhc: Number(unitPriceGhc) || 0,
           reorderPoint: Number(reorderPoint) || 20,
           supplier: supplier || 'Ghana Medical Supplies Ltd',
-          lastRestocked: new Date().toISOString().split('T')[0]
+          lastRestocked: new Date()
         }
       })
   );

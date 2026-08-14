@@ -36,3 +36,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Examiner credentials — supplied with the Sakai submission only,
+# never in the public repository (coursework requirement).
+Links.txt
+**/Links.txt
+
+# Documentation build intermediates
+docs/build/

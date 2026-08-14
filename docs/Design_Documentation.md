@@ -635,7 +635,7 @@ sequenceDiagram
         end
     end
 
-    Note over UI,D: Any failed step is reported<br/>individually; the encounter is not lost
+    Note over UI,D: Any failed step is reported<br/>individually — the encounter is not lost
 ```
 
 ## 6.3 Dispensing with Atomic Stock Deduction

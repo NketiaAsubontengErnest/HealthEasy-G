@@ -41,11 +41,14 @@ async function parse(response: Response): Promise<any> {
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   let response: Response;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15_000);
 
   try {
     response = await fetch(url, {
       method,
       credentials: 'same-origin',
+      signal: controller.signal,
       ...(body !== undefined && {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -53,6 +56,8 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     });
   } catch (cause) {
     throw new ApiError(0, `Cannot reach the HealthEasy-G server (${method} ${url}).`);
+  } finally {
+    window.clearTimeout(timeout);
   }
 
   const payload = await parse(response);

@@ -287,6 +287,13 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshAll = useCallback(async () => {
     setIsLoadingData(true);
     try {
+      // Super Admin is deliberately barred from patient and clinical records.
+      // Avoid issuing requests that will only be rejected; it also removes a
+      // large burst of unnecessary database work immediately after login.
+      const isSystemAdmin = currentRole === 'Super Admin';
+      const loadForDashboard = <T,>(url: string, allowedForSystemAdmin = false) =>
+        isSystemAdmin && !allowedForSystemAdmin ? Promise.resolve([] as T[]) : loadCollection<T>(url);
+
       // Collections the signed-in role may not read come back empty rather
       // than throwing — a Cashier simply has no laboratory worklist.
       const [
@@ -308,23 +315,23 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         marRows,
         batchRows
       ] = await Promise.all([
-        loadCollection<FacilityBranch>('/api/facilities'),
-        loadCollection<StaffCredential>('/api/staff'),
-        loadCollection<PatientRecord>('/api/patients'),
-        loadCollection<QueueItem>('/api/queues'),
-        loadCollection<VitalSigns>('/api/vitals'),
-        loadCollection<EMREncounter>('/api/encounters'),
-        loadCollection<LabOrderRecord>('/api/lab-orders'),
-        loadCollection<PharmacyBatchItem>('/api/pharmacy'),
-        loadCollection<InpatientBed>('/api/beds'),
-        loadCollection<RadiologyOrderRecord>('/api/radiology'),
-        loadCollection<BillingInvoice>('/api/billing'),
-        loadCollection<NHISClaimLine>('/api/nhis-claims'),
-        loadCollection<InventoryStoreItem>('/api/inventory'),
-        loadCollection<AuditLogEntry>('/api/audit-logs'),
-        loadCollection<PrescriptionDispenseRecord>('/api/pharmacy/dispense'),
-        loadCollection<MedicationAdministrationRecord>('/api/mar'),
-        loadCollection<NHISClaimBatch>('/api/nhis-batches')
+        loadForDashboard<FacilityBranch>('/api/facilities', true),
+        loadForDashboard<StaffCredential>('/api/staff', true),
+        loadForDashboard<PatientRecord>('/api/patients'),
+        loadForDashboard<QueueItem>('/api/queues'),
+        loadForDashboard<VitalSigns>('/api/vitals'),
+        loadForDashboard<EMREncounter>('/api/encounters'),
+        loadForDashboard<LabOrderRecord>('/api/lab-orders'),
+        loadForDashboard<PharmacyBatchItem>('/api/pharmacy', true),
+        loadForDashboard<InpatientBed>('/api/beds', true),
+        loadForDashboard<RadiologyOrderRecord>('/api/radiology'),
+        loadForDashboard<BillingInvoice>('/api/billing'),
+        loadForDashboard<NHISClaimLine>('/api/nhis-claims'),
+        loadForDashboard<InventoryStoreItem>('/api/inventory', true),
+        loadForDashboard<AuditLogEntry>('/api/audit-logs', true),
+        loadForDashboard<PrescriptionDispenseRecord>('/api/pharmacy/dispense'),
+        loadForDashboard<MedicationAdministrationRecord>('/api/mar'),
+        loadForDashboard<NHISClaimBatch>('/api/nhis-batches')
       ]);
 
       setFacilities(facilityRows);
@@ -363,7 +370,7 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoadingData(false);
     }
-  }, []);
+  }, [currentRole]);
 
   useEffect(() => {
     if (isAuthenticated) void refreshAll();

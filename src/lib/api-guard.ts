@@ -6,6 +6,36 @@ import { prisma } from '@/lib/prisma';
 
 export type { SessionPayload };
 
+type Validation = { valid: boolean; expiresAt: number };
+const SESSION_VALIDATION_TTL_MS = 30_000;
+const sessionValidationCache = new Map<string, Validation>();
+const validationInFlight = new Map<string, Promise<boolean>>();
+
+async function sessionIsCurrent(session: SessionPayload): Promise<boolean> {
+  const key = `${session.id}:${session.sessionVersion}:${session.facilityId}`;
+  const now = Date.now();
+  const cached = sessionValidationCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.valid;
+
+  // Login causes the dashboard to request many endpoints simultaneously. Share
+  // the one authoritative database check instead of opening one query per API
+  // request, while retaining short-lived account-revocation enforcement.
+  let check = validationInFlight.get(key);
+  if (!check) {
+    check = prisma.userStaff.findUnique({
+      where: { id: session.id },
+      select: { status: true, role: true, sessionVersion: true, facilityId: true }
+    }).then((user) => Boolean(
+      user && user.status.toLowerCase() === 'active' && user.role === session.role &&
+      user.sessionVersion === session.sessionVersion && user.facilityId === session.facilityId
+    )).finally(() => validationInFlight.delete(key));
+    validationInFlight.set(key, check);
+  }
+  const valid = await check;
+  sessionValidationCache.set(key, { valid, expiresAt: now + SESSION_VALIDATION_TTL_MS });
+  return valid;
+}
+
 /**
  * Reads and verifies the signed session cookie. Returns null when the request
  * carries no valid session — identity is never taken from the request body,
@@ -18,13 +48,7 @@ export async function getSession(req: NextRequest): Promise<SessionPayload | nul
   // Signed tokens are still invalid once an account is disabled, re-assigned,
   // or its session version changes. This closes the revocation gap inherent in
   // purely stateless sessions.
-  const user = await prisma.userStaff.findUnique({
-    where: { id: session.id },
-    select: { status: true, role: true, sessionVersion: true, facilityId: true }
-  });
-  if (!user || user.status.toLowerCase() !== 'active' || user.role !== session.role ||
-      user.sessionVersion !== session.sessionVersion || user.facilityId !== session.facilityId) return null;
-  return session;
+  return await sessionIsCurrent(session) ? session : null;
 }
 
 export function roleHasPermission(role: string, permission: Permission): boolean {

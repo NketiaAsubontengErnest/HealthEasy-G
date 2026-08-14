@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { clientIp, roleHasPermission, withAuth } from '@/lib/api-guard';
 import { toInvoice, toPatientCategory } from '@/lib/adapters';
 import { formatSequence, withUniqueNumber } from '@/lib/sequence';
+import { badRequest, finiteNumber, requiredString } from '@/lib/validation';
 
 export const GET = withAuth('GET', async (req) => {
   const patientId = new URL(req.url).searchParams.get('patientId');
@@ -32,8 +33,13 @@ export const POST = withAuth('POST', async (req, session) => {
     lineItems
   } = body;
 
-  if (!patientId || !mrn) {
-    return NextResponse.json({ error: 'patientId and mrn are required.' }, { status: 400 });
+  let patient;
+  try {
+    requiredString(patientId, 'patientId', 100);
+    patient = await prisma.patient.findUnique({ where: { id: patientId } });
+    if (!patient) return NextResponse.json({ error: 'Patient does not exist.' }, { status: 404 });
+  } catch (error) {
+    return badRequest(error);
   }
 
   // Totals are recomputed from the line items rather than trusted from the
@@ -41,16 +47,23 @@ export const POST = withAuth('POST', async (req, session) => {
   // header disagrees with what the patient is actually being charged.
   const items: { amountGhc?: number; nhisCoveredGhc?: number }[] = Array.isArray(lineItems) ? lineItems : [];
 
-  const subtotal = items.length
-    ? items.reduce((sum, item) => sum + (Number(item.amountGhc) || 0), 0)
-    : Number(subtotalGhc) || 0;
-
-  const covered = items.length
-    ? items.reduce((sum, item) => sum + (Number(item.nhisCoveredGhc) || 0), 0)
-    : Number(nhisExemptionGhc) || 0;
+  let subtotal: number;
+  let covered: number;
+  let paidInput: number;
+  try {
+    subtotal = items.length
+      ? items.reduce((sum, item) => sum + finiteNumber(item.amountGhc, 'Line item amount', 0, 1_000_000), 0)
+      : finiteNumber(subtotalGhc, 'Subtotal', 0, 1_000_000);
+    covered = items.length
+      ? items.reduce((sum, item) => sum + finiteNumber(item.nhisCoveredGhc ?? 0, 'NHIS-covered amount', 0, 1_000_000), 0)
+      : finiteNumber(nhisExemptionGhc ?? 0, 'NHIS exemption', 0, 1_000_000);
+    paidInput = finiteNumber(paidAmountGhc ?? 0, 'Paid amount', 0, 1_000_000);
+  } catch (error) {
+    return badRequest(error);
+  }
 
   const total = Math.max(0, subtotal);
-  const paid = Math.min(Math.max(0, Number(paidAmountGhc) || 0), total);
+  const paid = Math.min(paidInput, total);
   const balance = Math.max(0, total - covered - paid);
 
   const newInvoice = await withUniqueNumber(
@@ -60,9 +73,9 @@ export const POST = withAuth('POST', async (req, session) => {
         data: {
           invoiceNumber,
           patientId,
-          mrn,
-          patientName: patientName || '',
-          patientCategory: toPatientCategory(patientCategory),
+          mrn: patient.mrn,
+          patientName: patient.fullName,
+          patientCategory: patient.patientCategory,
           subtotalGhc: subtotal,
           nhisExemptionGhc: covered,
           totalAmountGhc: total,

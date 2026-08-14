@@ -81,7 +81,8 @@ export const API_POLICY: Record<string, MethodPolicy> = {
   },
   '/api/staff': {
     // Names, roles and licence expiry — no credentials are ever selected.
-    GET: authenticated
+    GET: authenticated,
+    POST: permission('MANAGE_STAFF', 'MANAGE_USERS')
   },
   '/api/patients': {
     GET: roles(PATIENT_DATA_READERS),
@@ -160,10 +161,7 @@ export const API_POLICY: Record<string, MethodPolicy> = {
     PATCH: permission('MANAGE_HOSPITALS', 'MANAGE_FACILITY_CONFIG')
   },
   '/api/audit-logs': {
-    GET: permission('VIEW_AUDIT_LOGS', 'MANAGE_STAFF', 'VIEW_EXECUTIVE_DASHBOARD'),
-    // Any authenticated action may append to the immutable trail; the server
-    // stamps the acting identity from the session, never from the request body.
-    POST: authenticated
+    GET: permission('VIEW_AUDIT_LOGS', 'MANAGE_STAFF', 'VIEW_EXECUTIVE_DASHBOARD')
   },
   '/api/ai-assistant': {
     POST: permission('ORDER_PRESCRIPTION', 'CLINICAL_CONSULTATION', 'VERIFY_PRESCRIPTION', 'DISPENSE_MEDICINE')

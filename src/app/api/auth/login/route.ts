@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { comparePassword } from '@/lib/auth';
 import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from '@/lib/session';
 import { clientIp } from '@/lib/api-guard';
+import { clearLoginAttempts, loginAllowed, recordFailedLogin } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,10 +14,19 @@ export async function POST(req: NextRequest) {
     }
 
     const ipAddress = clientIp(req);
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+    const rateLimitKey = `${ipAddress}:${normalizedEmail}`;
+
+    if (!loginAllowed(rateLimitKey)) {
+      return NextResponse.json(
+        { error: 'Too many sign-in attempts. Try again in 15 minutes.' },
+        { status: 429, headers: { 'Retry-After': '900' } }
+      );
+    }
 
     // 1. Fetch user by email from PostgreSQL
     const user = await prisma.userStaff.findUnique({
-      where: { email: String(email).toLowerCase().trim() }
+      where: { email: normalizedEmail }
     });
 
     if (!user) {
@@ -32,6 +42,7 @@ export async function POST(req: NextRequest) {
           ipAddress
         }
       });
+      recordFailedLogin(rateLimitKey);
 
       return NextResponse.json({ error: 'Invalid user credentials.' }, { status: 401 });
     }
@@ -50,6 +61,7 @@ export async function POST(req: NextRequest) {
           ipAddress
         }
       });
+      recordFailedLogin(rateLimitKey);
 
       return NextResponse.json({ error: 'Invalid user credentials.' }, { status: 401 });
     }
@@ -74,6 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Record successful login audit log
+    clearLoginAttempts(rateLimitKey);
     await prisma.auditLog.create({
       data: {
         userId: user.id,
@@ -92,7 +105,9 @@ export async function POST(req: NextRequest) {
       role: user.role,
       hierarchyLevel: user.hierarchyLevel,
       staffId: user.staffId,
-      department: user.department
+      department: user.department,
+      facilityId: user.facilityId,
+      sessionVersion: user.sessionVersion
     };
 
     // 5. Issue a signed, httpOnly session cookie. The browser never receives

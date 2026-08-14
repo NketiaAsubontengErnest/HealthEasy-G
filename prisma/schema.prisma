@@ -106,6 +106,10 @@ model UserStaff {
   department    String
   email         String        @unique
   passwordHash  String        @default("$2b$10$e8vK3g...default")
+  // Increment to invalidate all previously issued sessions for this account.
+  sessionVersion Int          @default(1)
+  // All staff belong to one branch; API reads use this as their tenant boundary.
+  facilityId    String        @default("fac-1")
   phone         String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

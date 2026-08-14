@@ -4,9 +4,10 @@ import { clientIp, withAuth } from '@/lib/api-guard';
 import { requireDate, toDateOnly, toPatient, toPatientCategory } from '@/lib/adapters';
 import { formatSequence, withUniqueNumber } from '@/lib/sequence';
 
-export const GET = withAuth('GET', async (req) => {
+export const GET = withAuth('GET', async (req, session) => {
   const facilityId = new URL(req.url).searchParams.get('facilityId');
-  const where = facilityId && facilityId !== 'all' ? { facilityId } : {};
+  // A staff member may never select a different branch through the query string.
+  const where = { facilityId: session.facilityId };
 
   const patients = await prisma.patient.findMany({ where, orderBy: { createdAt: 'desc' } });
   const data = patients.map(toPatient);
@@ -58,7 +59,7 @@ export const POST = withAuth('POST', async (req, session) => {
       prisma.patient.create({
         data: {
           mrn,
-          facilityId: facilityId || 'fac-1',
+          facilityId: session.facilityId,
           fullName,
           dob: requireDate(dob, 'date of birth'),
           gender,

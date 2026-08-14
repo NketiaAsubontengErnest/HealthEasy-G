@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
 import { formatDate, toDispenseRecord } from '@/lib/adapters';
+import { badRequest, finiteNumber, requiredString } from '@/lib/validation';
 
 export const GET = withAuth('GET', async (req) => {
   const patientId = new URL(req.url).searchParams.get('patientId');
@@ -30,13 +31,15 @@ export const POST = withAuth('POST', async (req, session) => {
     counselingNotes
   } = body;
 
-  if (!patientId || !batchNumber) {
-    return NextResponse.json({ error: 'patientId and batchNumber are required.' }, { status: 400 });
-  }
-
-  const quantity = Number(quantityDispensed) || 1;
-  if (quantity <= 0) {
-    return NextResponse.json({ error: 'Dispensed quantity must be greater than zero.' }, { status: 400 });
+  let quantity: number;
+  try {
+    requiredString(patientId, 'patientId', 100);
+    requiredString(batchNumber, 'batchNumber', 100);
+    requiredString(prescriptionId, 'prescriptionId', 100);
+    quantity = finiteNumber(quantityDispensed, 'Dispensed quantity', 1, 10_000);
+    if (!Number.isInteger(quantity)) throw new Error('Dispensed quantity must be a whole number.');
+  } catch (error) {
+    return badRequest(error);
   }
 
   // Recording the dispense and deducting stock must succeed or fail together.
@@ -45,6 +48,15 @@ export const POST = withAuth('POST', async (req, session) => {
   // read-then-write deduction lost units whenever two counters dispensed the
   // same batch concurrently.
   const result = await prisma.$transaction(async (tx) => {
+    const patient = await tx.patient.findUnique({ where: { id: patientId } });
+    if (!patient) return { error: 'Patient does not exist.', status: 404 as const };
+
+    // A dispense must reference a signed encounter. The client cannot invent
+    // an identifier and turn it into a stock-moving prescription.
+    const encounter = await tx.eMREncounter.findUnique({ where: { id: prescriptionId } });
+    if (!encounter || !encounter.signed || encounter.patientId !== patientId) {
+      return { error: 'A signed encounter for this patient is required before dispensing.', status: 409 as const };
+    }
     const batch = await tx.pharmacyBatch.findUnique({ where: { batchNumber } });
 
     if (!batch) {
@@ -69,11 +81,11 @@ export const POST = withAuth('POST', async (req, session) => {
       data: {
         prescriptionId: prescriptionId || `rx-${Date.now()}`,
         patientId,
-        mrn: mrn || '',
-        patientName: patientName || '',
-        drugName: drugName || batch.drugName,
+        mrn: patient.mrn,
+        patientName: patient.fullName,
+        drugName: batch.drugName,
         dosageInstructions: dosageInstructions || 'Dispensed per clinician orders',
-        quantityPrescribed: Number(quantityPrescribed) || quantity,
+        quantityPrescribed: Math.max(quantity, Number(quantityPrescribed) || quantity),
         quantityDispensed: quantity,
         batchNumber,
         dispensedById: session.id,
@@ -109,7 +121,7 @@ export const POST = withAuth('POST', async (req, session) => {
       role: session.role,
       action: 'DISPENSE_MEDICATION',
       patientId,
-      mrn: mrn || null,
+      mrn: result.dispense.mrn,
       details: `Dispensed ${quantity} unit(s) of ${result.dispense.drugName} from batch ${batchNumber}`,
       ipAddress: clientIp(req)
     }

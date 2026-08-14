@@ -26,6 +26,16 @@ export const PATCH = withAuth('PATCH', async (req, session) => {
     return NextResponse.json({ error: 'Bed not found' }, { status: 404 });
   }
 
+  const patient = currentPatientId
+    ? await prisma.patient.findUnique({ where: { id: currentPatientId } })
+    : null;
+  if (currentPatientId && !patient) {
+    return NextResponse.json({ error: 'Patient does not exist.' }, { status: 404 });
+  }
+  if (bedStatus === BedStatus.OCCUPIED && !patient) {
+    return NextResponse.json({ error: 'An occupied bed must have a patient.' }, { status: 400 });
+  }
+
   if (
     bedStatus === BedStatus.OCCUPIED &&
     existing.status === BedStatus.OCCUPIED &&
@@ -46,8 +56,8 @@ export const PATCH = withAuth('PATCH', async (req, session) => {
     data: {
       status: bedStatus,
       currentPatientId: currentPatientId || null,
-      patientName: patientName || null,
-      mrn: mrn || null,
+      patientName: patient?.fullName || null,
+      mrn: patient?.mrn || null,
       admissionDate: currentPatientId ? new Date() : null
     }
   });
@@ -59,8 +69,8 @@ export const PATCH = withAuth('PATCH', async (req, session) => {
       role: session.role,
       action: 'UPDATE_BED_STATUS',
       patientId: currentPatientId || null,
-      mrn: mrn || null,
-      details: `Bed ${updatedBed.bedNumber} (${updatedBed.wardName}) set to ${bedStatus}${patientName ? ` for ${patientName}` : ''}`,
+      mrn: updatedBed.mrn,
+      details: `Bed ${updatedBed.bedNumber} (${updatedBed.wardName}) set to ${bedStatus}${updatedBed.patientName ? ` for ${updatedBed.patientName}` : ''}`,
       ipAddress: clientIp(req)
     }
   });

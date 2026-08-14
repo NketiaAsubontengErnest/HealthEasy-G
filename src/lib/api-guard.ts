@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, SessionPayload, verifySessionToken } from '@/lib/session';
 import { API_POLICY, AccessRule } from '@/lib/api-policy';
 import { ROLE_DEFINITIONS, Permission, UserRole } from '@/lib/types/rbac';
+import { prisma } from '@/lib/prisma';
 
 export type { SessionPayload };
 
@@ -11,7 +12,19 @@ export type { SessionPayload };
  * headers or query string.
  */
 export async function getSession(req: NextRequest): Promise<SessionPayload | null> {
-  return verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return null;
+
+  // Signed tokens are still invalid once an account is disabled, re-assigned,
+  // or its session version changes. This closes the revocation gap inherent in
+  // purely stateless sessions.
+  const user = await prisma.userStaff.findUnique({
+    where: { id: session.id },
+    select: { status: true, role: true, sessionVersion: true, facilityId: true }
+  });
+  if (!user || user.status.toLowerCase() !== 'active' || user.role !== session.role ||
+      user.sessionVersion !== session.sessionVersion || user.facilityId !== session.facilityId) return null;
+  return session;
 }
 
 export function roleHasPermission(role: string, permission: Permission): boolean {

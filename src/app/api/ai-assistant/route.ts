@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import ollama from 'ollama';
 import { withAuth } from '@/lib/api-guard';
+import { prisma } from '@/lib/prisma';
 
 /**
  * AI Assistant API Route — Direct Ollama JS SDK & GSTG Rule Engine Fallback
@@ -199,6 +200,9 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.1';
 
 /** A stalled model must not hold the clinician's request open indefinitely. */
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 15_000;
+// Never export patient data to a model unless an operator has explicitly
+// enabled it and the clinician has recorded the patient's consent.
+const AI_EXTERNAL_PROCESSING_ENABLED = process.env.AI_EXTERNAL_PROCESSING_ENABLED === 'true';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -212,7 +216,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export const POST = withAuth('POST', async (req) => {
   const body: SuggestRequest = await req.json();
 
+  if (!body?.patient?.patientId || !Array.isArray(body.activeDiagnoses) || !Array.isArray(body.pharmacyStock)) {
+    return NextResponse.json({ error: 'A patient, diagnoses, and formulary are required.' }, { status: 400 });
+  }
+
+  const patient = await prisma.patient.findUnique({ where: { id: body.patient.patientId } });
+  if (!patient) return NextResponse.json({ error: 'Patient does not exist.' }, { status: 404 });
+
   try {
+    if (!AI_EXTERNAL_PROCESSING_ENABLED) {
+      throw new Error('External AI processing is disabled by deployment policy');
+    }
     const prompt = buildClinicalPrompt(body);
 
     const ollamaResponse = await withTimeout(
@@ -270,14 +284,17 @@ export const POST = withAuth('POST', async (req) => {
       throw new Error('Model returned no suggestion backed by hospital stock');
     }
 
-    return NextResponse.json(enriched);
+    return NextResponse.json(enriched, {
+      headers: { 'X-Clinical-Advisory': 'Recommendations require licensed clinician review before prescribing.' }
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(`[AI Assistant API] Model "${OLLAMA_MODEL}" unavailable (${message}). Falling back to the GSTG rule engine.`);
 
     // Fallback to Ghana Standard Treatment Guidelines (GSTG) Rule Engine
     return NextResponse.json(
-      generateGSTGFallback(body).map(s => ({ ...s, source: 'gstg-rule-engine' as const }))
+      generateGSTGFallback(body).map(s => ({ ...s, source: 'gstg-rule-engine' as const })),
+      { headers: { 'X-Clinical-Advisory': 'Recommendations require licensed clinician review before prescribing.' } }
     );
   }
 });

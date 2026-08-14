@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { clientIp, withAuth } from '@/lib/api-guard';
 import { toEsiSeverity, toVitalSigns } from '@/lib/adapters';
+import { badRequest, finiteNumber, requiredString } from '@/lib/validation';
 
 /**
  * Ranges follow the Ghana Health Service triage protocol thresholds used on
@@ -71,22 +72,25 @@ export const POST = withAuth('POST', async (req, session) => {
     nursingNotes
   } = body;
 
-  if (!patientId) {
-    return NextResponse.json({ error: 'patientId is required to record vitals.' }, { status: 400 });
+  let measurements: Parameters<typeof abnormalAlerts>[0];
+  let weight: number;
+  let height: number;
+  try {
+    requiredString(patientId, 'patientId', 100);
+    measurements = {
+      systolicBp: finiteNumber(systolicBp, 'Systolic blood pressure', 40, 300),
+      diastolicBp: finiteNumber(diastolicBp, 'Diastolic blood pressure', 20, 200),
+      pulseRate: finiteNumber(pulseRate, 'Pulse rate', 20, 300),
+      temperature: finiteNumber(temperature, 'Temperature', 25, 45),
+      respiratoryRate: finiteNumber(respiratoryRate, 'Respiratory rate', 4, 100),
+      oxygenSaturation: finiteNumber(oxygenSaturation, 'Oxygen saturation', 30, 100),
+      bloodGlucoseMmoles: finiteNumber(bloodGlucoseMmoles, 'Blood glucose', 0.1, 60)
+    };
+    weight = finiteNumber(weightKg, 'Weight', 0.5, 500);
+    height = finiteNumber(heightCm, 'Height', 20, 300);
+  } catch (error) {
+    return badRequest(error);
   }
-
-  const measurements = {
-    systolicBp: Number(systolicBp) || 120,
-    diastolicBp: Number(diastolicBp) || 80,
-    pulseRate: Number(pulseRate) || 75,
-    temperature: Number(temperature) || 36.8,
-    respiratoryRate: Number(respiratoryRate) || 18,
-    oxygenSaturation: Number(oxygenSaturation) || 98,
-    bloodGlucoseMmoles: Number(bloodGlucoseMmoles) || 5.5
-  };
-
-  const weight = Number(weightKg) || 70;
-  const height = Number(heightCm) || 170;
 
   const newVital = await prisma.vitalSigns.create({
     data: {

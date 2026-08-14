@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "vercel-build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
+    "db:migrate": "tsx scripts/with-db.mjs - prisma migrate deploy",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "postinstall": "prisma generate",
@@ -19,7 +20,8 @@
     "db:push:cloud": "tsx scripts/with-db.mjs cloud prisma db push --skip-generate",
     "db:seed:cloud": "tsx scripts/with-db.mjs cloud tsx prisma/seed.ts",
     "db:setup:local": "npm run db:push:local && npm run db:seed:local",
-    "db:setup:cloud": "npm run db:push:cloud && npm run db:seed:cloud"
+    "db:setup:cloud": "npm run db:push:cloud && npm run db:seed:cloud",
+    "db:seed:examiner": "tsx scripts/with-db.mjs - tsx prisma/seed-examiner.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

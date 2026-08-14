@@ -19,6 +19,8 @@ export interface SessionPayload {
   hierarchyLevel: number;
   staffId: string;
   department: string;
+  facilityId: string;
+  sessionVersion: number;
   /** Issued-at, epoch seconds. */
   iat: number;
   /** Expiry, epoch seconds. */
@@ -86,12 +88,15 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
-export type NewSession = Omit<SessionPayload, 'iat' | 'exp'>;
+export type NewSession = Omit<SessionPayload, 'iat' | 'exp' | 'facilityId' | 'sessionVersion'> &
+  Partial<Pick<SessionPayload, 'facilityId' | 'sessionVersion'>>;
 
 export async function createSessionToken(user: NewSession): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     ...user,
+    facilityId: user.facilityId ?? 'fac-1',
+    sessionVersion: user.sessionVersion ?? 1,
     iat: now,
     exp: now + sessionMaxAgeSeconds()
   };

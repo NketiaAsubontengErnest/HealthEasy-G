@@ -1,21 +1,9 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Manrope, Newsreader } from 'next/font/google';
 import './css/globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { HMSProvider } from '@/context/HMSContext';
 
-const manrope = Manrope({ subsets: ['latin'], variable: '--font-sans' });
-
-// An editorial serif for display headings. Pairing it with Manrope gives the
-// public site a considered, institutional voice instead of the single-sans
-// look every dashboard template ships with.
-const newsreader = Newsreader({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-display'
-});
 
 export const metadata: Metadata = {
   title: 'HealthEasy-G HMS | Hospital Management System',
@@ -47,7 +35,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${manrope.variable} ${newsreader.variable} ${manrope.className}`}
+        className="font-sans"
         suppressHydrationWarning
       >
         <ThemeProvider

@@ -22,11 +22,10 @@ date: "August 2026"
 | 1 | Ernest Nketia Asubonterng | 22424715 | Lead System Architect & AI Integrator |
 | 2 | Nana Kwabena Asare | 22424817 | Clinical EMR and ICD-10 diagnosis engine |
 | 3 | Casper Kosi Asense | 22425080 | Master Patient Index, Ghana Card and NHIS validation |
-| 4 | Richard Gyebi | 22424822 | Cashier operations, payments and NHIS G-DRG claims |
-| 5 | Aubrey Owusu Amoah | 22424666 | PACS radiology orders and diagnostic workflows |
-| 6 | Thomas Nii Armah Okai | 22425782 | Pharmacy FEFO stock control and dispensing |
-| 7 | Abubakari Zubeiru | 22425115 | Inpatient bed management and audit-log compliance |
-| 8 | Frank Tandoh | 22425049 | Responsive layouts, design system and accessibility |
+| 4 | Aubrey Owusu Amoah | 22424666 | PACS radiology orders and diagnostic workflows |
+| 5 | Thomas Nii Armah Okai | 22425782 | Pharmacy FEFO stock control and dispensing |
+| 6 | Abubakari Zubeiru | 22425115 | Inpatient bed management and audit-log compliance |
+| 7 | Frank Tandoh | 22425049 | Responsive layouts, design system and accessibility |
 
 ---
 

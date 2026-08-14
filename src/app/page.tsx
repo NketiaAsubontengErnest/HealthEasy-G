@@ -83,7 +83,6 @@ const LEAD = {
 const TEAM = [
   { name: 'Nana Kwabena Asare', id: '22424817', role: 'Software Engineer', focus: 'Clinical EMR consultation and ICD-10 diagnosis engine' },
   { name: 'Casper Kosi Asense', id: '22425080', role: 'Software Engineer', focus: 'Master Patient Index, Ghana Card and NHIS validation' },
-  { name: 'Richard Gyebi', id: '22424822', role: 'FinTech & Billing Engineer', focus: 'Cashier shifts, mobile money payments and NHIS G-DRG claims' },
   { name: 'Aubrey Owusu Amoah', id: '22424666', role: 'Senior Software Engineer', focus: 'PACS radiology orders and diagnostic workflows' },
   { name: 'Thomas Nii Armah Okai', id: '22425782', role: 'Senior Software Engineer', focus: 'Pharmacy FEFO stock control and prescription dispensing' },
   { name: 'Abubakari Zubeiru', id: '22425115', role: 'QA & Security Engineer', focus: 'Inpatient bed management and DPC audit-log compliance' },

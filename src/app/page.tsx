@@ -361,7 +361,7 @@ export default function HomePage() {
           </div>
 
           {/* GROUP DEVELOPERS GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="flex flex-wrap justify-center gap-5">
             {[
               {
                 name: 'Nana Kwabena Asare',
@@ -415,7 +415,7 @@ export default function HomePage() {
             ].map(({ name, id, role, specialty, tag }) => (
               <div
                 key={id}
-                className="p-5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3 hover:border-emerald-500/40 hover:bg-white/[0.05] transition-all duration-300"
+                className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.33%-14px)] p-5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3 hover:border-emerald-500/40 hover:bg-white/[0.05] transition-all duration-300"
               >
                 <div className="flex justify-between items-start">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-white/10 flex items-center justify-center text-xs font-bold text-emerald-400">

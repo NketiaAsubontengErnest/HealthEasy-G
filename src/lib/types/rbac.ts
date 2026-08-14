@@ -483,7 +483,11 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     permissions: [
       'RECEIVE_LAB_SAMPLES',
       'PERFORM_LAB_TESTS',
-      'SUBMIT_LAB_RESULTS'
+      'SUBMIT_LAB_RESULTS',
+      // VERIFY_LAB_RESULTS was defined in the Permission catalogue but held by
+      // no role, so releasing a result to the clinical record was impossible
+      // for everyone. The laboratory scientist is the verifying authority.
+      'VERIFY_LAB_RESULTS'
     ],
     cannot: [
       'Cannot order laboratory tests independently.',

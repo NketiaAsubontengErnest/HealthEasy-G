@@ -6,13 +6,15 @@ import { UserRole, ROLE_DEFINITIONS } from '@/lib/types/rbac';
 import { Icon } from '@iconify/react';
 
 export default function RoleSwitcher() {
-  const { currentRole, setCurrentRole, staff } = useHMS();
+  const { currentRole, currentUser } = useHMS();
   const [isOpen, setIsOpen] = useState(false);
 
   const activeDef = ROLE_DEFINITIONS[currentRole];
-  // Allow role switching ONLY if logged in as Super Admin or in guest preview mode
-  const canSwitchRole = currentRole === 'Super Admin' || !staff;
 
+  // The role now comes from the signed session cookie and is enforced on the
+  // server. This panel therefore *shows* the hierarchy rather than switching
+  // into it — the old dropdown let a Super Admin session assume any role in
+  // the browser, and every screen trusted that choice.
   const hierarchyGroups = [
     {
       title: 'Level 1 — System Root',
@@ -53,22 +55,6 @@ export default function RoleSwitcher() {
     }
   ];
 
-  // Static badge for non-Super Admin logged-in users (no role switching allowed)
-  if (!canSwitchRole) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs font-medium text-slate-800 dark:text-slate-100">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary font-bold text-xs">
-          <Icon icon="solar:user-speak-bold-duotone" width="14" />
-        </span>
-        <div className="text-left hidden sm:block">
-          <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold leading-none">Role</span>
-          <span className="font-semibold text-slate-900 dark:text-white leading-tight">{currentRole}</span>
-        </div>
-        <span className="text-xs font-semibold text-slate-900 dark:text-white sm:hidden">{currentRole}</span>
-      </div>
-    );
-  }
-
   return (
     <div className="relative inline-block text-left">
       {/* Role Switcher Trigger Button */}
@@ -96,9 +82,11 @@ export default function RoleSwitcher() {
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Icon icon="solar:structure-bold-duotone" className="text-primary" width="18" />
-                  HMS Role Hierarchy Switcher
+                  HMS Role Hierarchy
                 </h3>
-                <p className="text-[11px] text-slate-500">Structured by Standardized Reporting Tree</p>
+                <p className="text-[11px] text-slate-500">
+                  Signed in as <strong>{currentUser?.name ?? 'Unknown staff'}</strong> ({currentUser?.staffId ?? '—'})
+                </p>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -139,16 +127,12 @@ export default function RoleSwitcher() {
                       const isSelected = currentRole === role;
                       const roleDef = ROLE_DEFINITIONS[role];
                       return (
-                        <button
+                        <div
                           key={role}
-                          onClick={() => {
-                            setCurrentRole(role);
-                            setIsOpen(false);
-                          }}
-                          className={`flex items-center justify-between p-2.5 rounded-xl text-left transition-all ${
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-left ${
                             isSelected
                               ? 'bg-primary/10 border border-primary/40 text-primary font-semibold'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                              : 'text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
@@ -169,7 +153,7 @@ export default function RoleSwitcher() {
                           <span className="text-[10px] text-slate-400 font-mono">
                             L{roleDef?.level}
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

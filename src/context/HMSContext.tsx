@@ -25,90 +25,32 @@ import { UserRole, Permission, ROLE_DEFINITIONS } from '@/lib/types/rbac';
 import { ApiError, api, loadCollection } from '@/lib/api-client';
 
 /* ------------------------------------------------------------------ *
- * Reference data with no database table yet
+ * No seed data lives in this file.
  *
- * Everything else is loaded from PostgreSQL. The previous version seeded
- * ~900 lines of fabricated patients, queues, encounters, invoices and claims
- * into state and only replaced them when an endpoint returned a non-empty
- * list — so an empty table silently displayed convincing fake data, and no
- * one could tell which screens were real.
+ * Every collection below is loaded from PostgreSQL over the API. The previous
+ * version shipped ~900 lines of fabricated patients, queues, encounters,
+ * invoices, claims, medication charts and DHIMS2 figures, and only replaced
+ * them when an endpoint happened to return a non-empty list — so an empty
+ * table silently displayed convincing fake data and no one could tell which
+ * screens were real.
+ *
+ * The empty DHIMS2 shape below is a placeholder used only while the first
+ * fetch is in flight; it contains no invented figures.
  * ------------------------------------------------------------------ */
 
-const INITIAL_MAR: MedicationAdministrationRecord[] = [
-  {
-    id: 'mar-1',
-    encounterId: 'enc-inpatient-1',
-    patientId: 'pat-3',
-    patientName: 'Yaw Addo-Danquah',
-    bedNumber: 'Bed MS-01',
-    drugName: 'Inj Ceftriaxone 1g IV',
-    dosage: '1g IV 12 hourly',
-    route: 'Intravenous',
-    dueTime: '08:00 AM',
-    administeredTime: '08:05 AM',
-    status: 'Administered',
-    administeredBy: 'Nurse Abena Osei'
-  },
-  {
-    id: 'mar-2',
-    encounterId: 'enc-inpatient-1',
-    patientId: 'pat-3',
-    patientName: 'Yaw Addo-Danquah',
-    bedNumber: 'Bed MS-01',
-    drugName: 'Tab Paracetamol 1g PO',
-    dosage: '1g PO 8 hourly',
-    route: 'Oral',
-    dueTime: '02:00 PM',
-    status: 'Scheduled'
-  },
-  {
-    id: 'mar-3',
-    encounterId: 'enc-3',
-    patientId: 'pat-5',
-    patientName: 'Kwabena Agyemang Badu',
-    bedNumber: 'ICU Bed 01',
-    drugName: 'Inj Morphine 5mg IV',
-    dosage: '5mg IV stat',
-    route: 'Intravenous',
-    dueTime: '09:50 AM',
-    administeredTime: '09:52 AM',
-    status: 'Administered',
-    administeredBy: 'Nurse Joyce Tetteh'
-  }
-];
-
-const INITIAL_NHIS_BATCHES: NHISClaimBatch[] = [
-  {
-    id: 'batch-1',
-    batchNo: 'NHIA-GAR-2026-07-B1',
-    monthYear: '2026-07',
-    facilityCode: 'GAR-RIDGE-01',
-    claimCount: 1420,
-    totalAmountGhc: 184500.0,
-    status: 'Exported CLAIM-it',
-    createdDate: '2026-07-31'
-  }
-];
-
-const INITIAL_DHIMS: DHIMSReportSummary = {
-  monthYear: '2026-07',
-  totalOpdAttendance: 3420,
-  opdUnder5Male: 280,
-  opdUnder5Female: 310,
-  opdAbove5Male: 1350,
-  opdAbove5Female: 1480,
-  topDiagnoses: [
-    { disease: 'Malaria (Uncomplicated)', cases: 820 },
-    { disease: 'Essential Hypertension', cases: 640 },
-    { disease: 'Upper Respiratory Tract Infection', cases: 490 },
-    { disease: 'Type 2 Diabetes Mellitus', cases: 310 },
-    { disease: 'Gastroenteritis', cases: 215 }
-  ],
-  totalAdmissions: 245,
-  totalDischarges: 230,
-  totalDeaths: 4,
-  maternalDeliveries: 92,
-  nhisClaimsSubmittedGhc: 184500.0
+const EMPTY_DHIMS: DHIMSReportSummary = {
+  monthYear: new Date().toISOString().slice(0, 7),
+  totalOpdAttendance: 0,
+  opdUnder5Male: 0,
+  opdUnder5Female: 0,
+  opdAbove5Male: 0,
+  opdAbove5Female: 0,
+  topDiagnoses: [],
+  totalAdmissions: 0,
+  totalDischarges: 0,
+  totalDeaths: 0,
+  maternalDeliveries: 0,
+  nhisClaimsSubmittedGhc: 0
 };
 
 /** Aggregate counts from `/api/stats` — carries no patient identifiers. */
@@ -175,6 +117,7 @@ interface HMSContextType {
 
   // RBAC (advisory in the browser — the server is the enforcement point)
   currentRole: UserRole;
+  /** UI preview only — confers no privileges. See the implementation note. */
   setCurrentRole: (role: UserRole) => void;
   hasPermission: (permission: Permission) => boolean;
   canAccessRoute: (routePath: string) => boolean;
@@ -258,13 +201,19 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [stats, setStats] = useState<FacilityStats | null>(null);
 
-  const [mar] = useState<MedicationAdministrationRecord[]>(INITIAL_MAR);
-  const [nhisBatches] = useState<NHISClaimBatch[]>(INITIAL_NHIS_BATCHES);
-  const [dhimsReport] = useState<DHIMSReportSummary>(INITIAL_DHIMS);
+  const [mar, setMar] = useState<MedicationAdministrationRecord[]>([]);
+  const [nhisBatches, setNhisBatches] = useState<NHISClaimBatch[]>([]);
+  const [dhimsReport, setDhimsReport] = useState<DHIMSReportSummary>(EMPTY_DHIMS);
 
   const isAuthenticated = currentUser !== null;
   const currentRole = (currentUser?.role ?? 'Super Admin') as UserRole;
 
+  /**
+   * Changes the role this browser *renders* as. It grants nothing: the server
+   * reads the role from the signed session cookie, so an API call still runs
+   * under the signed-in staff member's real role and will return 403 if that
+   * role is not permitted. Kept for the org-hierarchy explorer.
+   */
   const setCurrentRole = useCallback((role: UserRole) => {
     setCurrentUser((prev) => (prev ? { ...prev, role } : null));
   }, []);
@@ -355,7 +304,9 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         claimRows,
         inventoryRows,
         auditRows,
-        dispenseRows
+        dispenseRows,
+        marRows,
+        batchRows
       ] = await Promise.all([
         loadCollection<FacilityBranch>('/api/facilities'),
         loadCollection<StaffCredential>('/api/staff'),
@@ -371,7 +322,9 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loadCollection<NHISClaimLine>('/api/nhis-claims'),
         loadCollection<InventoryStoreItem>('/api/inventory'),
         loadCollection<AuditLogEntry>('/api/audit-logs'),
-        loadCollection<PrescriptionDispenseRecord>('/api/pharmacy/dispense')
+        loadCollection<PrescriptionDispenseRecord>('/api/pharmacy/dispense'),
+        loadCollection<MedicationAdministrationRecord>('/api/mar'),
+        loadCollection<NHISClaimBatch>('/api/nhis-batches')
       ]);
 
       setFacilities(facilityRows);
@@ -389,12 +342,23 @@ export const HMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInventory(inventoryRows);
       setAuditLogs(auditRows);
       setDispenseRecords(dispenseRows);
+      setMar(marRows);
+      setNhisBatches(batchRows);
 
+      // Single-object endpoints, loaded separately from the collections above.
       try {
         const statsResponse = await api.get<{ data: FacilityStats }>('/api/stats');
         setStats(statsResponse.data);
       } catch {
         setStats(null);
+      }
+
+      try {
+        const dhimsResponse = await api.get<{ data: DHIMSReportSummary }>('/api/dhims2');
+        setDhimsReport(dhimsResponse.data);
+      } catch {
+        // Roles without DHIMS2 reporting rights simply see zeroes.
+        setDhimsReport(EMPTY_DHIMS);
       }
     } finally {
       setIsLoadingData(false);

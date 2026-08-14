@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { IconHeartHandshake } from '@tabler/icons-react';
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -35,15 +36,20 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="#home" onClick={() => setActiveSection('home')} className="flex items-center gap-2.5 group">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-white transition-transform group-hover:scale-105"
-              style={{ background: 'linear-gradient(135deg,#16a34a,#0ea5e9)' }}
-            >
-              H
+            <div className="w-9 h-9 rounded-[14px] bg-[#00b589] text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0 group-hover:scale-105 transition-transform duration-200">
+              <IconHeartHandshake size={22} stroke={2.2} />
             </div>
-            <span className="font-extrabold text-white tracking-tight text-lg">
-              HealthEasy<span className="text-emerald-400">-G</span>
-            </span>
+            <div className="flex flex-col justify-center">
+              <div className="flex items-center leading-none">
+                <span className="text-xl font-extrabold tracking-tight text-white">
+                  HealthEasy
+                </span>
+                <span className="text-xl font-black text-[#ff9600] ml-0.5">-G</span>
+              </div>
+              <span className="text-[9px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">
+                GHANA HOSPITAL PLATFORM
+              </span>
+            </div>
           </Link>
 
           {/* Navigation Links with Active State Indicator */}

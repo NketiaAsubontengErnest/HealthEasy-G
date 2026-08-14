@@ -135,6 +135,21 @@ export const API_POLICY: Record<string, MethodPolicy> = {
     GET: roles([...FINANCE, 'Hospital Director', 'Hospital Admin']),
     POST: permission('PREPARE_CLAIMS', 'VERIFY_NHIS', 'CLINICAL_CONSULTATION')
   },
+  '/api/nhis-batches': {
+    GET: roles([...FINANCE, 'Hospital Director', 'Hospital Admin', 'System Auditor']),
+    POST: permission('PREPARE_CLAIMS'),
+    PATCH: permission('SUBMIT_CLAIMS', 'RECONCILE_CLAIMS')
+  },
+  '/api/mar': {
+    GET: roles(CLINICAL_RECORD_READERS),
+    POST: permission('ORDER_PRESCRIPTION', 'MEDICATION_ADMINISTRATION'),
+    PATCH: permission('MEDICATION_ADMINISTRATION')
+  },
+  '/api/dhims2': {
+    // The monthly return is aggregate reporting, not patient data.
+    GET: permission('VIEW_DHIMS2_REPORTS', 'VIEW_EXECUTIVE_DASHBOARD', 'RETRIEVE_RECORDS', 'VIEW_AUDIT_LOGS'),
+    POST: permission('VIEW_DHIMS2_REPORTS', 'RETRIEVE_RECORDS')
+  },
   '/api/inventory': {
     GET: roles([...EXECUTIVE, ...STORES, ...PHARMACY]),
     POST: permission('MANAGE_INVENTORY', 'RECEIVE_STOCK', 'CREATE_PURCHASE_ORDERS')

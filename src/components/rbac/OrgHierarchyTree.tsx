@@ -6,7 +6,13 @@ import { UserRole, ROLE_DEFINITIONS } from '@/lib/types/rbac';
 import { Icon } from '@iconify/react';
 
 export default function OrgHierarchyTree() {
-  const { currentRole, setCurrentRole } = useHMS();
+  const { currentRole } = useHMS();
+
+  // Selecting a node inspects that role's definition. It no longer reassigns
+  // the session's own role — access is decided by the signed session cookie on
+  // the server, so a click here could never have granted anything anyway.
+  const [inspectedRole, setInspectedRole] = useState<UserRole>(currentRole);
+
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     'Super Admin': true,
     'Hospital Director': true,
@@ -24,7 +30,7 @@ export default function OrgHierarchyTree() {
     4: { bg: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border-teal-300', label: 'L4 Staff Specialist' }
   };
 
-  const activeRoleDef = ROLE_DEFINITIONS[currentRole];
+  const activeRoleDef = ROLE_DEFINITIONS[inspectedRole];
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
@@ -47,7 +53,12 @@ export default function OrgHierarchyTree() {
         {activeRoleDef && (
           <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-left max-w-xs w-full">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-900 dark:text-white">{currentRole}</span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {inspectedRole}
+                {inspectedRole === currentRole && (
+                  <span className="ml-1.5 text-[10px] font-semibold text-primary">(your role)</span>
+                )}
+              </span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${levelBadges[activeRoleDef.level].bg}`}>
                 Level {activeRoleDef.level}
               </span>
@@ -65,8 +76,8 @@ export default function OrgHierarchyTree() {
             role="Super Admin"
             isExpanded={expandedNodes['Super Admin']}
             onToggle={() => toggleNode('Super Admin')}
-            isSelected={currentRole === 'Super Admin'}
-            onSelect={() => setCurrentRole('Super Admin')}
+            isSelected={inspectedRole === 'Super Admin'}
+            onSelect={() => setInspectedRole('Super Admin')}
           />
 
           {/* LEVEL 2 BRANCHES */}
@@ -79,8 +90,8 @@ export default function OrgHierarchyTree() {
                   role="System Auditor"
                   isExpanded={false}
                   onToggle={() => {}}
-                  isSelected={currentRole === 'System Auditor'}
-                  onSelect={() => setCurrentRole('System Auditor')}
+                  isSelected={inspectedRole === 'System Auditor'}
+                  onSelect={() => setInspectedRole('System Auditor')}
                   badgeText="Direct Audit Oversight"
                 />
               </div>
@@ -92,8 +103,8 @@ export default function OrgHierarchyTree() {
                   role="Hospital Director"
                   isExpanded={expandedNodes['Hospital Director']}
                   onToggle={() => toggleNode('Hospital Director')}
-                  isSelected={currentRole === 'Hospital Director'}
-                  onSelect={() => setCurrentRole('Hospital Director')}
+                  isSelected={inspectedRole === 'Hospital Director'}
+                  onSelect={() => setInspectedRole('Hospital Director')}
                   badgeText="Executive Hospital Leadership"
                 />
 
@@ -107,8 +118,8 @@ export default function OrgHierarchyTree() {
                         role="Hospital Admin"
                         isExpanded={expandedNodes['Hospital Admin']}
                         onToggle={() => toggleNode('Hospital Admin')}
-                        isSelected={currentRole === 'Hospital Admin'}
-                        onSelect={() => setCurrentRole('Hospital Admin')}
+                        isSelected={inspectedRole === 'Hospital Admin'}
+                        onSelect={() => setInspectedRole('Hospital Admin')}
                         badgeText="Operations & Admin Management"
                       />
 
@@ -128,8 +139,8 @@ export default function OrgHierarchyTree() {
                                 role={roleName as UserRole}
                                 isExpanded={false}
                                 onToggle={() => {}}
-                                isSelected={currentRole === roleName}
-                                onSelect={() => setCurrentRole(roleName as UserRole)}
+                                isSelected={inspectedRole === roleName}
+                                onSelect={() => setInspectedRole(roleName as UserRole)}
                               />
                             </div>
                           ))}
@@ -160,8 +171,8 @@ export default function OrgHierarchyTree() {
                             role={roleName as UserRole}
                             isExpanded={false}
                             onToggle={() => {}}
-                            isSelected={currentRole === roleName}
-                            onSelect={() => setCurrentRole(roleName as UserRole)}
+                            isSelected={inspectedRole === roleName}
+                            onSelect={() => setInspectedRole(roleName as UserRole)}
                             compact
                           />
                         ))}

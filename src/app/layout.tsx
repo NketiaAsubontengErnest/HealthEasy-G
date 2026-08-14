@@ -28,7 +28,7 @@ export default function RootLayout({
       <body className={`${manrope.className}`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >

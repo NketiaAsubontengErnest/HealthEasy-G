@@ -155,6 +155,7 @@ model Patient {
   dispenses       DispenseRecord[]
   invoices        BillingInvoice[]
   nhisClaims      NHISClaimLine[]
+  medicationAdmin MedicationAdministrationRecord[]
   auditLogs       AuditLog[]
 }
 
@@ -463,7 +464,70 @@ model InventoryStoreItem {
 }
 
 // ----------------------------------------------------
-// 14. IMMUTABLE DPC AUDIT LOG TRAIL
+// 14. MEDICATION ADMINISTRATION RECORD (MAR)
+// ----------------------------------------------------
+
+model MedicationAdministrationRecord {
+  id               String   @id @default(uuid())
+  encounterId      String?
+  patientId        String
+  patientName      String
+  bedNumber        String
+  drugName         String
+  dosage           String
+  route            String
+  dueTime          String
+  administeredTime String?
+  status           String   @default("Scheduled") // Scheduled, Administered, Omitted, Refused
+  administeredById String?
+  administeredBy   String?
+  omissionReason   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------
+// 15. NHIS CLAIM BATCHES (CLAIM-it submission envelopes)
+// ----------------------------------------------------
+
+model NHISClaimBatch {
+  id             String   @id @default(uuid())
+  batchNo        String   @unique
+  monthYear      String // e.g. "2026-07"
+  facilityCode   String
+  claimCount     Int      @default(0)
+  totalAmountGhc Float    @default(0)
+  status         String   @default("Prepared") // Prepared, Exported CLAIM-it, Submitted to NHIA, Reconciled
+  preparedBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 16. DHIMS2 MONTHLY RETURN
+//
+// Most DHIMS2 figures are derived from live clinical data. The few that are
+// not captured anywhere else in the system (deaths, deliveries) are recorded
+// here by the records officer, exactly as they are on the paper return.
+// ----------------------------------------------------
+
+model DhimsMonthlyReturn {
+  id                 String   @id @default(uuid())
+  monthYear          String   @unique // "2026-07"
+  facilityCode       String   @default("GAR-RIDGE-01")
+  totalDeaths        Int      @default(0)
+  maternalDeliveries Int      @default(0)
+  totalDischarges    Int      @default(0)
+  submittedBy        String?
+  submittedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 17. IMMUTABLE DPC AUDIT LOG TRAIL
 // ----------------------------------------------------
 
 model AuditLog {

@@ -8,13 +8,13 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   setTheme: () => {},
 });
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'dark',
+  defaultTheme = 'light',
 }: {
   children: React.ReactNode;
   attribute?: string;
@@ -34,7 +34,7 @@ export function ThemeProvider({
         document.documentElement.classList.remove('dark');
       }
     } catch (e) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('dark');
     }
   }, [defaultTheme]);
 

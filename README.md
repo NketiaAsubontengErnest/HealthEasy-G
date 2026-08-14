@@ -7,28 +7,41 @@
 ## ⚡ Quick Start & Setup Instructions
 
 ### 1. Prerequisites
-- **Node.js**: `v18.x` or higher
-- **PostgreSQL**: Running locally or remotely (configured via `.env`)
+- **Node.js**: `v20.x` or higher
+- **PostgreSQL**: a local server, a managed cloud instance, or both
 
 ### 2. Environment Setup
 
-Create or update `.env` in the root folder:
+Copy `.env.example` to `.env` and fill in your own values. The application runs
+against **either a local PostgreSQL (offline) or a managed cloud PostgreSQL
+(online)** — same schema, same seed, selected by one variable:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/healtheasy_g?schema=public"
-NEXTAUTH_SECRET="healtheasy_g_secret_key_2026"
-NEXTAUTH_URL="http://localhost:3000"
+DATABASE_TARGET="cloud"          # or "local"
+
+DATABASE_URL_LOCAL="postgresql://postgres:postgres@localhost:5432/healtheasy_g?schema=public"
+DATABASE_URL_CLOUD="postgresql://user:password@your-host.neon.tech/neondb?sslmode=require"
+
+# Signs staff session cookies. Generate your own:
+#   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+SESSION_SECRET="a-long-random-value-of-at-least-32-characters"
 ```
 
-### 3. Database Migration & Seeding
+`.env` is git-ignored — never commit real credentials.
+
+### 3. Create and Seed the Database
 
 ```bash
-# Push schema to PostgreSQL database server
-npx prisma db push
+npm install                # generates the Prisma client automatically
 
-# Seed 20 HMS role user accounts & sample data
-npx tsx prisma/seed.ts
+npm run db:setup:cloud     # schema + seed on the online database
+npm run db:setup:local     # schema + seed on the offline database
 ```
+
+Run both once and you can then work online or offline by flipping
+`DATABASE_TARGET`. Individual steps are also available — `db:push`, `db:seed`,
+`db:studio` (each honours `DATABASE_TARGET`), plus `:local` / `:cloud` variants
+that override it.
 
 ### 4. Run Development Server
 
@@ -36,7 +49,64 @@ npx tsx prisma/seed.ts
 npm run dev
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)** (or **[http://localhost:3000/auth/login](http://localhost:3000/auth/login)**) in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** — you will be redirected
+to the login portal. Every page and every API route requires a signed-in staff
+session.
+
+### 5. Checks
+
+```bash
+npm run typecheck    # TypeScript, no emit
+npm test             # session, RBAC policy, adapters, datasource
+npm run build        # production build
+```
+
+CI runs the same three steps against a throwaway PostgreSQL on every push and
+pull request — see `.github/workflows/ci.yml`.
+
+---
+
+## 🔒 Security Model
+
+Authentication and authorisation are enforced **on the server**. The browser is
+never trusted to report who it is or what role it holds.
+
+| Layer | File | Responsibility |
+| :--- | :--- | :--- |
+| Session | `src/lib/session.ts` | HMAC-SHA256 signed token in an `httpOnly` cookie; forged, re-signed or expired tokens are rejected |
+| Perimeter | `src/middleware.ts` | Rejects unauthenticated traffic before any page or route handler runs; enforces each role's `allowedRoutes` |
+| Policy | `src/lib/api-policy.ts` | Declares who may call each endpoint and method — **fails closed** for anything unlisted |
+| Enforcement | `src/lib/api-guard.ts` | `withAuth()` wraps every route handler and applies the policy |
+
+Consequences worth knowing:
+
+- The acting identity on every write — audit entries, vitals, consultation
+  notes, dispensing, payments — is taken from the session, never from the
+  request body, so records cannot be filed under someone else's name.
+- The **DPC constraint on Super Admin is enforced, not merely documented**: the
+  system administrator cannot read `/api/patients`, `/api/vitals` or
+  `/api/encounters`. Executive dashboards read `/api/stats`, which returns
+  aggregate counts containing no patient identifiers.
+- Changing the role displayed in the browser grants nothing; the server reads
+  the role from the signed cookie.
+
+---
+
+## 🗄️ Where the Data Comes From
+
+Every clinical, financial and administrative screen reads live PostgreSQL rows
+through the API. There is **no fallback sample data in the application** — if a
+table is empty, the screen shows an empty state rather than fabricated records.
+
+`src/lib/adapters.ts` is the single translation point between Prisma rows and
+the client-facing types, so storage-oriented names and `SCREAMING_SNAKE` enums
+(`IN_CONSULTATION`, `bedType`, `totalClaimGhc`) become what the UI renders
+(`In Consultation`, `type`, `totalClaimAmountGhc`).
+
+DHIMS2 figures are **computed live** from encounters, patients, admissions and
+claims. Only the two figures the system has no other source for — deaths and
+maternal deliveries — are entered by the records officer and stored in
+`DhimsMonthlyReturn`, exactly as on the paper return.
 
 ---
 

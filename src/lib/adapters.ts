@@ -31,6 +31,8 @@ import type {
   InpatientBed,
   InventoryStoreItem,
   LabOrderRecord,
+  MedicationAdministrationRecord,
+  NHISClaimBatch,
   NHISClaimLine,
   PatientCategory,
   PatientRecord,
@@ -475,6 +477,37 @@ export function toInventoryItem(row: Row): InventoryStoreItem {
     reorderPoint,
     unitCostGhc: row.unitPriceGhc ?? 0,
     status
+  };
+}
+
+export function toMedicationAdministration(row: Row): MedicationAdministrationRecord {
+  return {
+    id: row.id,
+    encounterId: row.encounterId ?? '',
+    patientId: row.patientId,
+    patientName: row.patientName,
+    bedNumber: row.bedNumber,
+    drugName: row.drugName,
+    dosage: row.dosage,
+    route: row.route,
+    dueTime: row.dueTime,
+    administeredTime: row.administeredTime ?? undefined,
+    status: row.status,
+    administeredBy: row.administeredBy ?? undefined,
+    omissionReason: row.omissionReason ?? undefined
+  };
+}
+
+export function toClaimBatch(row: Row): NHISClaimBatch {
+  return {
+    id: row.id,
+    batchNo: row.batchNo,
+    monthYear: row.monthYear,
+    facilityCode: row.facilityCode,
+    claimCount: row.claimCount,
+    totalAmountGhc: row.totalAmountGhc,
+    status: row.status,
+    createdDate: iso(row.createdAt).split('T')[0]
   };
 }
 

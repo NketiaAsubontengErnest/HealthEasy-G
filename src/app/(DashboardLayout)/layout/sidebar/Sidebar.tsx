@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useTheme } from '@/components/theme-provider';
 import { usePathname } from 'next/navigation';
 import SidebarContent from './Sidebaritems';
+import FullLogo from '../shared/logo/FullLogo';
 import SimpleBar from 'simplebar-react';
 import { Icon } from '@iconify/react';
 import { useHMS } from '@/context/HMSContext';
@@ -137,18 +138,10 @@ const SidebarLayout = ({ onClose }: { onClose?: () => void }) => {
     >
       {/* Logo */}
       <div>
-        <div className="px-4 flex items-center brand-logo overflow-hidden">
-          <AMLogo component={Link} href="/dashboard" img="">
-            <Image
-              src="/images/logos/dark-logo.svg"
-              alt="logo"
-              width={135}
-              height={40}
-              className="rtl:scale-x-[-1]"
-            />
-          </AMLogo>
+        <div className="px-5 py-2 flex items-center brand-logo overflow-hidden">
+          <FullLogo href="/dashboard" />
         </div>
-
+      
         {/* Sidebar items */}
         <SimpleBar className="h-[calc(100vh-180px)]">
           <div className="px-6">

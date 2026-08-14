@@ -11,9 +11,15 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "postinstall": "prisma generate",
-    "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:push": "tsx scripts/with-db.mjs - prisma db push --skip-generate",
+    "db:seed": "tsx scripts/with-db.mjs - tsx prisma/seed.ts",
+    "db:studio": "tsx scripts/with-db.mjs - prisma studio",
+    "db:push:local": "tsx scripts/with-db.mjs local prisma db push --skip-generate",
+    "db:seed:local": "tsx scripts/with-db.mjs local tsx prisma/seed.ts",
+    "db:push:cloud": "tsx scripts/with-db.mjs cloud prisma db push --skip-generate",
+    "db:seed:cloud": "tsx scripts/with-db.mjs cloud tsx prisma/seed.ts",
+    "db:setup:local": "npm run db:push:local && npm run db:seed:local",
+    "db:setup:cloud": "npm run db:push:cloud && npm run db:seed:cloud"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

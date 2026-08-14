@@ -20,15 +20,30 @@ export default function RoleGuard({
   requiredPermission,
   allowedRoles
 }: RoleGuardProps) {
-  const { currentRole, canAccessRoute, hasPermission, isAuthenticated } = useHMS();
+  const { currentRole, canAccessRoute, hasPermission, isAuthenticated, sessionLoading } = useHMS();
   const router = useRouter();
 
-  // Enforce Login Protection: Redirect unauthenticated visitors to /auth/login
+  // This guard is a usability layer, not the security boundary — `middleware.ts`
+  // rejects the request and every API route re-checks the session before doing
+  // any work. It exists so a staff member sees an explanation instead of a
+  // blank screen.
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!sessionLoading && !isAuthenticated) {
       router.push('/auth/login');
     }
-  }, [isAuthenticated, router]);
+  }, [sessionLoading, isAuthenticated, router]);
+
+  // Nothing is decided until the server has confirmed who is signed in.
+  if (sessionLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Icon icon="solar:shield-check-bold-duotone" className="text-primary animate-pulse" width="48" />
+          <p className="text-xs text-slate-500">Verifying your hospital session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

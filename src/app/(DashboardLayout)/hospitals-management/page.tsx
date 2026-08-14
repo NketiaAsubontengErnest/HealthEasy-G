@@ -110,7 +110,7 @@ function MultiHospitalContent() {
     return matchesSearch && matchesRegion && matchesType && matchesStatus;
   });
 
-  const handleCreateHospital = (e: React.FormEvent) => {
+  const handleCreateHospital = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -125,14 +125,16 @@ function MultiHospitalContent() {
     }
 
     try {
-      const created = addFacility({
+      const created = await addFacility({
         ...formData,
         bedCapacity: Number(formData.bedCapacity) || 50,
       });
 
-      setIsAddModalOpen(false);
-      setSuccessBanner(`Successfully registered ${created.name} (${created.code}) in ${created.region}!`);
-      setTimeout(() => setSuccessBanner(null), 5000);
+      if (created) {
+        setIsAddModalOpen(false);
+        setSuccessBanner(`Successfully registered ${created.name} (${created.code}) in ${created.location}!`);
+        setTimeout(() => setSuccessBanner(null), 5000);
+      }
 
       // Reset form
       setFormData({

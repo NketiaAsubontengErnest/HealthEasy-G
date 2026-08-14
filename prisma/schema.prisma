@@ -76,6 +76,14 @@ model FacilityBranch {
   gpsAddress      String
   phone           String
   email           String
+  // Displayed throughout hospitals-management but previously missing from the
+  // schema, so any facility loaded from the database rendered blank cells.
+  region          String        @default("Greater Accra")
+  facilityType    String        @default("District")
+  status          String        @default("Active")
+  adminName       String        @default("Unassigned")
+  adminEmail      String        @default("")
+  bedCapacity     Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
@@ -215,12 +223,17 @@ model EMREncounter {
   mrn            String
   patientName    String
   timestamp      DateTime @default(now())
+  encounterType  String   @default("OPD")
   chiefComplaint String
   historyOfIllness String
+  pastMedicalHistory String @default("")
   physicalExam   String
   icdDiagnoses   Json // Array of { code, name, category }
   orders         Json // Array of ClinicalOrder
+  clinicalNotes  String   @default("")
   treatmentPlan  String
+  dischargeDecision String?
+  signed         Boolean  @default(true)
   sickLeaveDays  Int      @default(0)
   signedById     String?
   clinicianName  String
@@ -262,11 +275,15 @@ model LabOrder {
   patientName      String
   testCode         String
   testName         String
+  testCategory     String   @default("General Pathology")
   specimenType     String
   barcodeNo        String   @unique
   orderedBy        String
   orderTimestamp   String
-  status           String   @default("Pending") // Pending, In-Progress, Verified
+  collectedAt      String?
+  receivedAt       String?
+  technicianName   String?
+  status           String   @default("Ordered") // Ordered, Specimen Collected, In Analysis, Verified, Completed
   results          Json? // Object mapping test parameters to values & ranges
   verifiedById     String?
   verifiedByName   String?
@@ -298,12 +315,14 @@ model RadiologyOrder {
   patientId        String
   mrn              String
   patientName      String
-  studyType        String // X-Ray, CT, MRI, Ultrasound
+  studyType        String // X-Ray, Ultrasound, CT Scan, MRI
   bodyPart         String
   clinicalHistory  String
+  pregnancyScreened Boolean @default(false)
+  radiographerNotes String?
   orderedBy        String
   orderTimestamp   String
-  status           String   @default("Scheduled")
+  status           String   @default("Ordered")
   pacsAccessionNo  String   @unique
   imageUrls        String[]
   reportContent    String?
@@ -322,7 +341,10 @@ model RadiologyOrder {
 model PharmacyBatch {
   id                String   @id @default(uuid())
   drugCode          String
-  drugName          String
+  drugName          String // Generic (INN) name
+  brandName         String   @default("")
+  dosageForm        String   @default("Tablet")
+  strength          String   @default("")
   category          String
   batchNumber       String   @unique
   expiryDate        String
@@ -402,13 +424,16 @@ model NHISClaimLine {
   gender            String
   dob               String
   attendanceDate    String
+  verificationRef   String   @default("")
   icdCode           String
   icdDescription    String
   gdrgCode          String
   gdrgTariffGhc     Float
+  medicineCode      String   @default("N/A")
   medicineTariffGhc Float    @default(0)
   totalClaimGhc     Float
-  status            String   @default("Passed Verification")
+  status            String   @default("Validated")
+  rejectionReason   String?
   auditFlags        String[]
   createdAt         DateTime @default(now())
 
@@ -424,7 +449,9 @@ model InventoryStoreItem {
   itemCode      String   @unique
   itemName      String
   category      String
-  storeLocation String   @default("Central Medical Stores")
+  storeLocation String   @default("Central Store")
+  batchNo       String   @default("N/A")
+  expiryDate    String   @default("")
   quantity      Int
   unit          String
   unitPriceGhc  Float

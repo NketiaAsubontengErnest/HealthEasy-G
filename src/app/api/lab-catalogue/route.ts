@@ -1,37 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth } from '@/lib/api-guard';
 
-export async function GET(req: NextRequest) {
-  try {
-    const tests = await prisma.labTestCatalogue.findMany({
-      orderBy: { name: 'asc' },
-    });
-    return NextResponse.json({ success: true, count: tests.length, data: tests });
-  } catch (error: any) {
-    console.error('Error fetching lab catalogue from DB:', error);
-    return NextResponse.json({ error: 'Failed to fetch lab test catalogue from database' }, { status: 500 });
+export const GET = withAuth('GET', async () => {
+  const tests = await prisma.labTestCatalogue.findMany({ orderBy: { name: 'asc' } });
+  return NextResponse.json({ success: true, count: tests.length, data: tests });
+});
+
+export const POST = withAuth('POST', async (req) => {
+  const body = await req.json();
+  const { code, name, category, specimenType, costGhc, nhisCovered } = body;
+
+  if (!code || !name) {
+    return NextResponse.json({ error: 'Test code and name are required.' }, { status: 400 });
   }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { code, name, category, specimenType, costGhc, nhisCovered } = body;
-
-    const newTest = await prisma.labTestCatalogue.create({
-      data: {
-        code,
-        name,
-        category: category || 'General Pathology',
-        specimenType: specimenType || 'Blood / Plasma',
-        costGhc: costGhc || 30.0,
-        nhisCovered: nhisCovered !== undefined ? nhisCovered : true
-      }
-    });
-
-    return NextResponse.json({ success: true, test: newTest });
-  } catch (error: any) {
-    console.error('Error creating lab test in DB:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create lab test' }, { status: 500 });
+  const duplicate = await prisma.labTestCatalogue.findUnique({ where: { code } });
+  if (duplicate) {
+    return NextResponse.json(
+      { error: `Test code ${code} is already used by "${duplicate.name}".` },
+      { status: 409 }
+    );
   }
-}
+
+  const newTest = await prisma.labTestCatalogue.create({
+    data: {
+      code,
+      name,
+      category: category || 'General Pathology',
+      specimenType: specimenType || 'Blood / Plasma',
+      costGhc: Number(costGhc) || 30,
+      nhisCovered: nhisCovered !== undefined ? Boolean(nhisCovered) : true
+    }
+  });
+
+  return NextResponse.json({ success: true, data: newTest, test: newTest });
+});

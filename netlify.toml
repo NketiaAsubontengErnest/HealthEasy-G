@@ -1,4 +1,16 @@
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# HealthEasy-G HMS is a Next.js App Router application with server-side API
+# routes and a Prisma/PostgreSQL backend — it cannot be served as a static SPA.
+# The previous catch-all redirect to /index.html shadowed every /api/* route.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Netlify defaults NODE_ENV to production, which skips devDependencies and
+  # would leave the `prisma` CLI unavailable to the postinstall/build step.
+  NODE_ENV = "development"
+  NPM_FLAGS = "--include=dev"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

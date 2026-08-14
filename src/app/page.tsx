@@ -315,63 +315,127 @@ export default function HomePage() {
       <section id="team" className="py-24 px-6 border-b border-white/5 bg-white/[0.01]">
         <div className="max-w-6xl mx-auto space-y-14">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-violet-400 bg-violet-500/10 px-3 py-1 rounded-full border border-violet-500/20">
-              Project Development Team
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+              CSCD602 Capstone Project Development Team
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
               Advance Software Development Group
             </h2>
-            <p className="text-slate-400 max-w-xl mx-auto text-sm">
-              Engineering an enterprise-grade Hospital Management System for Ghana's digital healthcare transformation.
+            <p className="text-slate-400 max-w-2xl mx-auto text-sm">
+              Meet the software engineering team behind HealthEasy-G HMS — building an enterprise healthcare system for Ghana.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* 🌟 HIGHLIGHTED LEAD DEVELOPER (RANK 1) 🌟 */}
+          <div className="max-w-3xl mx-auto">
+            <div className="p-8 rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-sky-950/40 shadow-2xl relative overflow-hidden group hover:border-emerald-400 transition-all duration-300">
+              <div className="absolute top-0 right-0 bg-gradient-to-l from-emerald-500 to-teal-600 text-white font-extrabold text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl shadow-lg">
+                ★ Lead Developer &amp; AI Integrator
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-sky-500 p-1 flex-shrink-0 shadow-xl">
+                  <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center text-4xl">
+                    🤖
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-center sm:text-left flex-1">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h3 className="text-2xl font-black text-white">Ernest Nketia Asubonterng</h3>
+                    <span className="text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                      ID: 22424715
+                    </span>
+                  </div>
+                  <p className="text-emerald-400 font-extrabold text-sm tracking-wide">
+                    Lead System Architect, AI Integrator &amp; Software Engineer
+                  </p>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    Lead Developer directing software architecture, Ollama AI Clinical Assistant &amp; GSTG Engine integration, Next.js 16 App Router, PostgreSQL / Prisma ORM, HeFRA/GHS compliance, and multi-hospital system management.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 8 GROUP DEVELOPERS GRID ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               {
-                name: 'Group ASD Team Lead',
-                role: 'System Architect',
-                specialty: 'Next.js 15, RBAC Hierarchy, Multi-Tenancy Architecture',
-                avatar: '👨‍💻',
-                tag: 'Lead',
-              },
-              {
-                name: 'Clinical Systems Dev',
-                role: 'EMR & AI Specialist',
-                specialty: 'Ollama Integration, ICD-10 Engine, GSTG Clinical Logic',
-                avatar: '👩‍⚕️',
+                name: 'Nana Kwabena Asare',
+                id: '22424817',
+                role: 'Senior Software Engineer',
+                specialty: 'Clinical EMR Consultation & ICD-10 Diagnosis Engine',
+                avatar: '👨‍⚕️',
                 tag: 'Clinical',
               },
               {
-                name: 'FinTech & Claims Dev',
-                role: 'Billing & NHIS Lead',
-                specialty: 'MoMo Payment Gateway, G-DRG Claims Engine, Financial Audit',
-                avatar: '👨‍💼',
-                tag: 'Finance',
+                name: 'Casper Kosi Asense',
+                id: '22425080',
+                role: 'Software Engineer',
+                specialty: 'Master Patient Index (MPI), Ghana Card & NHIS Validation',
+                avatar: '💻',
+                tag: 'MPI Core',
               },
               {
-                name: 'Frontend & UI/UX Eng',
-                role: 'UX Architect',
-                specialty: 'Tailwind CSS, Glassmorphism Design System, Accessibility',
+                name: 'Richard Gyebi',
+                id: '22424822',
+                role: 'FinTech & Billing Engineer',
+                specialty: 'Cashier Shift Systems, MoMo Payments & NHIS G-DRG Claims',
+                avatar: '👨‍💼',
+                tag: 'Billing',
+              },
+              {
+                name: 'Aubrey Owusu Amoah',
+                id: '22424666',
+                role: 'Full-Stack Engineer',
+                specialty: 'PACS Radiology Imaging Orders & Diagnostic Workflows',
+                avatar: '📡',
+                tag: 'Radiology',
+              },
+              {
+                name: 'Thomas Nii Armah Okai',
+                id: '22425782',
+                role: 'Software Engineer',
+                specialty: 'Pharmacy FEFO Stock Inventory & Prescription Dispensing',
+                avatar: '💊',
+                tag: 'Pharmacy',
+              },
+              {
+                name: 'Abubakari Zubeiru',
+                id: '22425115',
+                role: 'QA & Security Engineer',
+                specialty: 'Inpatient Bed Management (ADT) & DPC Audit Log Compliance',
+                avatar: '🛡️',
+                tag: 'Wards & Security',
+              },
+              {
+                name: 'Frank Tandoh',
+                id: '22425049',
+                role: 'UI/UX & Frontend Engineer',
+                specialty: 'Responsive Layouts, Glassmorphism Aesthetics & Accessibility',
                 avatar: '🎨',
                 tag: 'UI/UX',
               },
-            ].map(({ name, role, specialty, avatar, tag }) => (
+            ].map(({ name, id, role, specialty, avatar, tag }) => (
               <div
-                key={name}
-                className="p-6 rounded-2xl border border-white/10 bg-white/[0.03] text-center space-y-3 hover:border-emerald-500/30 transition-all duration-300"
+                key={id}
+                className="p-5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3 hover:border-emerald-500/40 hover:bg-white/[0.05] transition-all duration-300"
               >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-white/10 flex items-center justify-center text-3xl mx-auto">
-                  {avatar}
-                </div>
-                <div>
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-white/10 flex items-center justify-center text-2xl">
+                    {avatar}
+                  </div>
                   <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     {tag}
                   </span>
-                  <h3 className="font-extrabold text-white text-base mt-2">{name}</h3>
-                  <p className="text-xs font-semibold text-sky-400">{role}</p>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-white/5">
+                <div>
+                  <h3 className="font-extrabold text-white text-sm leading-snug">{name}</h3>
+                  <p className="text-[11px] font-mono text-slate-400">ID: {id}</p>
+                  <p className="text-xs font-bold text-sky-400 mt-1">{role}</p>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed pt-2 border-t border-white/5">
                   {specialty}
                 </p>
               </div>

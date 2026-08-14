@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import ollama from 'ollama';
+import { withAuth } from '@/lib/api-guard';
 
 /**
  * AI Assistant API Route — Direct Ollama JS SDK & GSTG Rule Engine Fallback
@@ -193,17 +194,34 @@ function generateGSTGFallback(body: SuggestRequest) {
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
-export async function POST(req: NextRequest) {
+/** Model name is configurable so the deployment is not pinned to one build. */
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.1';
+
+/** A stalled model must not hold the clinician's request open indefinitely. */
+const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Ollama did not respond within ${ms}ms`)), ms)
+    )
+  ]);
+}
+
+export const POST = withAuth('POST', async (req) => {
   const body: SuggestRequest = await req.json();
 
   try {
     const prompt = buildClinicalPrompt(body);
 
-    // Attempt calling Ollama
-    const ollamaResponse = await ollama.chat({
-      model: 'kimi-k3:cloud',
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const ollamaResponse = await withTimeout(
+      ollama.chat({
+        model: OLLAMA_MODEL,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      OLLAMA_TIMEOUT_MS
+    );
 
     let content = ollamaResponse.message.content.trim();
 
@@ -215,26 +233,51 @@ export async function POST(req: NextRequest) {
     }
 
     const rawSuggestions = JSON.parse(content);
+    if (!Array.isArray(rawSuggestions)) {
+      throw new Error('Model did not return a JSON array of suggestions');
+    }
+
     const stockMap = new Map(body.pharmacyStock.map(m => [m.drugCode, m]));
 
-    const enriched = rawSuggestions.map((s: RawSuggestion) => {
-      const stock = stockMap.get(s.drugCode);
-      return {
-        ...s,
-        durationDays: Number(s.durationDays) || 7,
-        allergyConflict: Boolean(s.allergyConflict),
-        unitPriceGhc: stock?.unitPriceGhc ?? 0,
-        quantityInStock: stock?.quantityInStock ?? 0,
-        isControlled: stock?.isControlled ?? false,
-      };
-    });
+    const enriched = rawSuggestions
+      // The model is instructed to prescribe only from the formulary, but a
+      // hallucinated drug code must never reach a prescription screen — so
+      // anything not backed by real stock is dropped rather than trusted.
+      .filter((s: RawSuggestion) => stockMap.has(s.drugCode))
+      .map((s: RawSuggestion) => {
+        const stock = stockMap.get(s.drugCode)!;
+        const patientAllergies = body.patient.allergies.map(a => a.toLowerCase());
+        const generic = stock.genericName.toLowerCase();
+
+        return {
+          ...s,
+          genericName: stock.genericName,
+          strength: stock.strength,
+          dosageForm: stock.dosageForm,
+          durationDays: Number(s.durationDays) || 7,
+          // Allergy conflict is re-derived locally rather than taken on the
+          // model's word — this flag is a patient-safety control.
+          allergyConflict:
+            Boolean(s.allergyConflict) || patientAllergies.some(a => generic.includes(a) || a.includes(generic)),
+          unitPriceGhc: stock.unitPriceGhc,
+          quantityInStock: stock.quantityInStock,
+          isControlled: stock.isControlled,
+          source: 'ollama' as const
+        };
+      });
+
+    if (enriched.length === 0) {
+      throw new Error('Model returned no suggestion backed by hospital stock');
+    }
 
     return NextResponse.json(enriched);
-  } catch (err: any) {
-    console.warn('[AI Assistant API] Ollama Model / Cloud error. Activating GSTG Rule Engine fallback...', err?.message || err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[AI Assistant API] Model "${OLLAMA_MODEL}" unavailable (${message}). Falling back to the GSTG rule engine.`);
 
     // Fallback to Ghana Standard Treatment Guidelines (GSTG) Rule Engine
-    const fallbackSuggestions = generateGSTGFallback(body);
-    return NextResponse.json(fallbackSuggestions);
+    return NextResponse.json(
+      generateGSTGFallback(body).map(s => ({ ...s, source: 'gstg-rule-engine' as const }))
+    );
   }
-}
+});

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import FullLogo from '@/app/(DashboardLayout)/layout/shared/logo/FullLogo';
 import CardBox from '../shared/CardBox';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useHMS } from '@/context/HMSContext';
 import { UserRole } from '@/lib/types/rbac';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,8 @@ import { Icon } from '@iconify/react';
 
 export const Login = () => {
   const router = useRouter();
-  const { setCurrentRole, loginUser, staff } = useHMS();
+  const searchParams = useSearchParams();
+  const { loginUser } = useHMS();
 
   const [email, setEmail] = useState('admin@ridgehms.gh');
   const [password, setPassword] = useState('Password123!');
@@ -41,61 +42,34 @@ export const Login = () => {
     setIsLoading(true);
 
     try {
-      // 1. Attempt API authentication via POST /api/auth/login
+      // Authentication happens on the server. There is deliberately no
+      // client-side fallback: the previous version signed anyone in with any
+      // @ridgehms.gh address — or with the shared demo password — whenever the
+      // API was unreachable, which made the password check optional in
+      // practice. If the server cannot be reached, sign-in must fail.
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ email: email.trim(), password })
       });
 
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (res.ok && data.success && data.user) {
-          loginUser(data.user);
-          router.push('/dashboard');
-          return;
-        } else if (!res.ok && data.error) {
-          setErrorMsg(data.error);
-          setIsLoading(false);
-          return;
-        }
-      }
+      const data = await res.json().catch(() => null);
 
-      // 2. Fallback client-side staff matching if API endpoint returns non-JSON or offline
-      const matchedStaff = staff.find((s) => s.email?.toLowerCase() === email.toLowerCase().trim());
-      if (matchedStaff || email.trim() === 'admin@ridgehms.gh' || email.includes('@ridgehms.gh')) {
-        const fallbackRole = (matchedStaff?.role as UserRole) || 'Super Admin';
-        loginUser({
-          id: matchedStaff?.id || 'usr-local-001',
-          name: matchedStaff?.name || 'Hospital Administrator',
-          email: email.trim(),
-          role: fallbackRole,
-          staffId: matchedStaff?.staffId || 'SYS-0001',
-          department: matchedStaff?.department || 'Administration'
-        });
-        router.push('/dashboard');
+      if (res.ok && data?.success && data.user) {
+        loginUser(data.user);
+        const next = searchParams.get('next');
+        // Only follow same-origin relative paths, so a crafted ?next= cannot
+        // bounce a signed-in clinician to an external site.
+        router.push(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard');
         return;
       }
 
-      setErrorMsg('Invalid email address or password. Please verify credentials.');
+      setErrorMsg(data?.error || 'Invalid email address or password. Please verify credentials.');
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login process error:', err);
-      // Client-side fallback authentication
-      if (email.trim().length > 0 && password === 'Password123!') {
-        loginUser({
-          id: 'usr-fallback',
-          name: 'Authenticated Staff',
-          email: email.trim(),
-          role: 'Super Admin',
-          staffId: 'SYS-0001',
-          department: 'Executive IT'
-        });
-        router.push('/dashboard');
-        return;
-      }
-      setErrorMsg('Authentication error. Please try again.');
+      setErrorMsg('Cannot reach the authentication server. Check your connection and try again.');
       setIsLoading(false);
     }
   };

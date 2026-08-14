@@ -1,40 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { clientIp, withAuth } from '@/lib/api-guard';
 
-export async function GET(req: NextRequest) {
-  try {
-    const logs = await prisma.auditLog.findMany({
-      orderBy: { timestamp: 'desc' },
-      take: 100, // Limit to most recent 100 entries for fast loading
-    });
-    return NextResponse.json({ success: true, count: logs.length, data: logs });
-  } catch (error: any) {
-    console.error('Error fetching audit logs:', error);
-    return NextResponse.json({ error: 'Failed to fetch audit logs' }, { status: 500 });
+export const GET = withAuth('GET', async () => {
+  const logs = await prisma.auditLog.findMany({
+    orderBy: { timestamp: 'desc' },
+    take: 100 // Most recent 100 entries for fast loading
+  });
+
+  return NextResponse.json({ success: true, count: logs.length, data: logs });
+});
+
+export const POST = withAuth('POST', async (req, session) => {
+  const body = await req.json();
+  const { action, patientId, mrn, details } = body;
+
+  if (!action) {
+    return NextResponse.json({ error: 'An audit action is required.' }, { status: 400 });
   }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { userId, userName, role, action, patientId, mrn, details, ipAddress } = body;
+  // The acting identity comes from the verified session, never from the
+  // request body — otherwise the "immutable" trail could be written under
+  // someone else's name.
+  const newLog = await prisma.auditLog.create({
+    data: {
+      userId: session.id,
+      userName: session.name,
+      role: session.role,
+      action: String(action),
+      patientId: patientId || null,
+      mrn: mrn || null,
+      details: details || '',
+      ipAddress: clientIp(req)
+    }
+  });
 
-    const newLog = await prisma.auditLog.create({
-      data: {
-        userId: userId || null,
-        userName: userName || 'System User',
-        role: role || 'Staff',
-        action: action || 'ACTION',
-        patientId: patientId || null,
-        mrn: mrn || null,
-        details: details || '',
-        ipAddress: ipAddress || req.headers.get('x-forwarded-for') || '127.0.0.1'
-      }
-    });
-
-    return NextResponse.json({ success: true, data: newLog });
-  } catch (error: any) {
-    console.error('Error creating audit log:', error);
-    return NextResponse.json({ error: error.message || 'Failed to record audit log' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ success: true, data: newLog });
+});

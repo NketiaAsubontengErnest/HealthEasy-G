@@ -1,0 +1,456 @@
+// HealthEasy-G PostgreSQL Database Schema (Prisma ORM)
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum LicenseStatus {
+  ACTIVE
+  PENDING_RENEWAL
+  EXPIRED
+}
+
+enum LicensingBody {
+  MDC
+  NMC
+  PHARMACY_COUNCIL
+  AHPC
+  OTHER
+}
+
+enum PatientCategory {
+  CASH
+  NHIS
+  CORPORATE
+  PRIVATE_INSURANCE
+  EXEMPTED
+}
+
+enum EmergencySeverity {
+  ESI_1_RESUSCITATION
+  ESI_2_EMERGENCY
+  ESI_3_URGENT
+  ESI_4_LESS_URGENT
+  ESI_5_NON_URGENT
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+  MAINTENANCE
+  ISOLATION
+}
+
+enum QueueStatus {
+  WAITING
+  IN_CONSULTATION
+  COMPLETED
+  TRANSFERRED
+}
+
+enum PriorityLevel {
+  NORMAL
+  URGENT
+  EMERGENCY
+}
+
+// ----------------------------------------------------
+// 1. FACILITY & SYSTEM MANAGEMENT
+// ----------------------------------------------------
+
+model FacilityBranch {
+  id              String        @id @default(uuid())
+  name            String
+  code            String        @unique
+  hefraLicenseNo  String
+  hefraExpiryDate String
+  hefraStatus     LicenseStatus @default(ACTIVE)
+  location        String
+  gpsAddress      String
+  phone           String
+  email           String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// ----------------------------------------------------
+// 2. USER & STAFF CREDENTIALS (20-ROLE HIERARCHY)
+// ----------------------------------------------------
+
+model UserStaff {
+  id            String        @id @default(uuid())
+  name          String
+  role          String // 20 HMS Roles
+  hierarchyLevel Int          @default(4) // Level 1 to 4
+  reportsTo     String?
+  staffId       String        @unique
+  licenseNumber String?
+  licensingBody LicensingBody @default(OTHER)
+  licenseExpiry String?
+  status        String        @default("Active")
+  department    String
+  email         String        @unique
+  passwordHash  String        @default("$2b$10$e8vK3g...default")
+  phone         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  vitalsRecorded   VitalSigns[]     @relation("RecordedVitals")
+  labResults       LabOrder[]       @relation("VerifiedLabResults")
+  dispenses        DispenseRecord[] @relation("DispensedBy")
+  encountersSigned EMREncounter[]   @relation("SignedEncounters")
+  auditLogs        AuditLog[]
+}
+
+// ----------------------------------------------------
+// 3. MASTER PATIENT INDEX (MPI) & REGISTRATION
+// ----------------------------------------------------
+
+model Patient {
+  id                 String          @id @default(uuid())
+  mrn                String          @unique // Medical Record Number
+  facilityId         String          @default("fac-1")
+  fullName           String
+  dob                String
+  gender             String
+  phone              String
+  ghanaCardNo        String          @unique
+  nhisNumber         String?
+  nhisStatus         String?         @default("Active")
+  nhisExpiry         String?
+  patientCategory    PatientCategory @default(CASH)
+  gpsAddress         String
+  residentialAddress String
+  emergencyContact   Json // { name, relationship, phone }
+  allergies          String[]
+  chronicConditions  String[]
+  bloodGroup         String          @default("O+")
+  registrationDate   String
+  photoUrl           String?
+  consentSigned      Boolean         @default(true)
+  mergedWithMrn      String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  queues          QueueItem[]
+  vitals          VitalSigns[]
+  encounters      EMREncounter[]
+  labOrders       LabOrder[]
+  radiologyOrders RadiologyOrder[]
+  dispenses       DispenseRecord[]
+  invoices        BillingInvoice[]
+  nhisClaims      NHISClaimLine[]
+  auditLogs       AuditLog[]
+}
+
+// ----------------------------------------------------
+// 4. QUEUE & PATIENT FLOW MANAGEMENT
+// ----------------------------------------------------
+
+model QueueItem {
+  id              String        @id @default(uuid())
+  patientId       String
+  mrn             String
+  patientName     String
+  patientCategory PatientCategory
+  department      String // Triage, OPD Consultation, Emergency, Laboratory, etc.
+  servicePoint    String
+  queueNumber     String
+  arrivalTime     String
+  waitingMinutes  Int           @default(0)
+  priority        PriorityLevel @default(NORMAL)
+  status          QueueStatus   @default(WAITING)
+  currentLocation String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------
+// 5. TRIAGE & NURSING VITALS
+// ----------------------------------------------------
+
+model VitalSigns {
+  id                 String            @id @default(uuid())
+  patientId          String
+  encounterId        String?
+  timestamp          DateTime          @default(now())
+  systolicBp         Int
+  diastolicBp        Int
+  pulseRate          Int
+  temperature        Float
+  respiratoryRate    Int
+  oxygenSaturation   Int
+  weightKg           Float
+  heightCm           Float
+  bmi                Float
+  bloodGlucoseMmoles Float             @default(5.5)
+  painScore          Int               @default(0)
+  pregnancyStatus    String?
+  esiSeverity        EmergencySeverity @default(ESI_3_URGENT)
+  nursingNotes       String
+  abnormalAlerts     String[]
+  recordedById       String?
+  recordedByName     String
+
+  patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedBy UserStaff? @relation("RecordedVitals", fields: [recordedById], references: [id])
+}
+
+// ----------------------------------------------------
+// 6. EMR & CLINICAL CONSULTATION
+// ----------------------------------------------------
+
+model EMREncounter {
+  id             String   @id @default(uuid())
+  patientId      String
+  mrn            String
+  patientName    String
+  timestamp      DateTime @default(now())
+  chiefComplaint String
+  historyOfIllness String
+  physicalExam   String
+  icdDiagnoses   Json // Array of { code, name, category }
+  orders         Json // Array of ClinicalOrder
+  treatmentPlan  String
+  sickLeaveDays  Int      @default(0)
+  signedById     String?
+  clinicianName  String
+  signedAt       DateTime @default(now())
+
+  patient  Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  signedBy UserStaff? @relation("SignedEncounters", fields: [signedById], references: [id])
+}
+
+// ----------------------------------------------------
+// 7. INPATIENT WARDS & BEDS
+// ----------------------------------------------------
+
+model InpatientBed {
+  id               String    @id @default(uuid())
+  wardName         String
+  bedNumber        String    @unique
+  bedType          String
+  status           BedStatus @default(AVAILABLE)
+  currentPatientId String?
+  patientName      String?
+  mrn              String?
+  admissionDate    String?
+  assignedNurse    String?
+  dailyRateGhc     Float
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// ----------------------------------------------------
+// 8. LABORATORY INFORMATION SYSTEM (LIS)
+// ----------------------------------------------------
+
+model LabOrder {
+  id               String   @id @default(uuid())
+  encounterId      String?
+  patientId        String
+  mrn              String
+  patientName      String
+  testCode         String
+  testName         String
+  specimenType     String
+  barcodeNo        String   @unique
+  orderedBy        String
+  orderTimestamp   String
+  status           String   @default("Pending") // Pending, In-Progress, Verified
+  results          Json? // Object mapping test parameters to values & ranges
+  verifiedById     String?
+  verifiedByName   String?
+  verificationTime String?
+  createdAt        DateTime @default(now())
+
+  patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  verifiedBy UserStaff? @relation("VerifiedLabResults", fields: [verifiedById], references: [id])
+}
+
+model LabTestCatalogue {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  category     String
+  specimenType String   @default("Blood / Plasma")
+  costGhc      Float
+  nhisCovered  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 9. RADIOLOGY & DIAGNOSTIC IMAGING (PACS)
+// ----------------------------------------------------
+
+model RadiologyOrder {
+  id               String   @id @default(uuid())
+  patientId        String
+  mrn              String
+  patientName      String
+  studyType        String // X-Ray, CT, MRI, Ultrasound
+  bodyPart         String
+  clinicalHistory  String
+  orderedBy        String
+  orderTimestamp   String
+  status           String   @default("Scheduled")
+  pacsAccessionNo  String   @unique
+  imageUrls        String[]
+  reportContent    String?
+  radiologistName  String?
+  signedTimestamp  String?
+  criticalFindings Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------
+// 10. PHARMACY & FEFO BATCH STOCK
+// ----------------------------------------------------
+
+model PharmacyBatch {
+  id                String   @id @default(uuid())
+  drugCode          String
+  drugName          String
+  category          String
+  batchNumber       String   @unique
+  expiryDate        String
+  quantityInStock   Int
+  reorderLevel      Int      @default(50)
+  unitCostGhc       Float
+  sellingPriceGhc   Float
+  nhisCovered       Boolean  @default(true)
+  controlledSubstance Boolean @default(false)
+  supplier          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  dispenses DispenseRecord[]
+}
+
+model DispenseRecord {
+  id                 String   @id @default(uuid())
+  prescriptionId     String
+  patientId          String
+  mrn                String
+  patientName        String
+  drugName           String
+  dosageInstructions String
+  quantityPrescribed Int
+  quantityDispensed  Int
+  batchNumber        String
+  dispensedById      String?
+  dispensedByName    String
+  dispenseTimestamp  DateTime @default(now())
+  status             String   @default("Dispensed")
+  counselingNotes    String?
+
+  patient     Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  batch       PharmacyBatch  @relation(fields: [batchNumber], references: [batchNumber])
+  dispensedBy UserStaff?     @relation("DispensedBy", fields: [dispensedById], references: [id])
+}
+
+// ----------------------------------------------------
+// 11. BILLING & CASHIER OPERATIONS
+// ----------------------------------------------------
+
+model BillingInvoice {
+  id               String          @id @default(uuid())
+  invoiceNumber    String          @unique
+  patientId        String
+  mrn              String
+  patientName      String
+  patientCategory  PatientCategory
+  subtotalGhc      Float
+  nhisExemptionGhc Float           @default(0)
+  totalAmountGhc   Float
+  paidAmountGhc    Float           @default(0)
+  balanceGhc       Float
+  status           String          @default("Unpaid")
+  paymentMethod    String?
+  cashierName      String?
+  receiptNumber    String?
+  createdAt        DateTime        @default(now())
+  lineItems        Json // Array of BillingLineItem
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------
+// 12. NHIS & INSURANCE CLAIMS ENGINE
+// ----------------------------------------------------
+
+model NHISClaimLine {
+  id                String   @id @default(uuid())
+  claimNumber       String   @unique
+  batchId           String?
+  patientId         String
+  mrn               String
+  patientName       String
+  nhisNumber        String
+  gender            String
+  dob               String
+  attendanceDate    String
+  icdCode           String
+  icdDescription    String
+  gdrgCode          String
+  gdrgTariffGhc     Float
+  medicineTariffGhc Float    @default(0)
+  totalClaimGhc     Float
+  status            String   @default("Passed Verification")
+  auditFlags        String[]
+  createdAt         DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------
+// 13. INVENTORY & STORES PROCUREMENT
+// ----------------------------------------------------
+
+model InventoryStoreItem {
+  id            String   @id @default(uuid())
+  itemCode      String   @unique
+  itemName      String
+  category      String
+  storeLocation String   @default("Central Medical Stores")
+  quantity      Int
+  unit          String
+  unitPriceGhc  Float
+  reorderPoint  Int      @default(20)
+  supplier      String
+  lastRestocked String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 14. IMMUTABLE DPC AUDIT LOG TRAIL
+// ----------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  timestamp   DateTime @default(now())
+  userId      String?
+  userName    String
+  role        String
+  action      String
+  patientId   String?
+  mrn         String?
+  details     String
+  ipAddress   String   @default("127.0.0.1")
+
+  user    UserStaff? @relation(fields: [userId], references: [id])
+  patient Patient?   @relation(fields: [patientId], references: [id])
+}

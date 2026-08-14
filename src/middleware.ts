@@ -14,10 +14,13 @@ import { ROLE_DEFINITIONS, UserRole } from '@/lib/types/rbac';
 /** Endpoints that must stay reachable without a session. */
 const PUBLIC_API = new Set(['/api/auth/login', '/api/auth/logout', '/api/auth/session']);
 
-const PUBLIC_PAGES = ['/auth/login', '/auth/register'];
+const PUBLIC_PAGES = ['/', '/auth/login', '/auth/register'];
 
 function isPublicPage(pathname: string): boolean {
-  return PUBLIC_PAGES.some((page) => pathname === page || pathname.startsWith(`${page}/`));
+  return PUBLIC_PAGES.some((page) => {
+    if (page === '/') return pathname === '/';
+    return pathname === page || pathname.startsWith(`${page}/`);
+  });
 }
 
 /**

@@ -130,13 +130,13 @@ export default function HomePage() {
                 boxShadow: '0 8px 40px rgba(22,163,74,0.35)',
               }}
             >
-              🏥 Launch HMS Dashboard
+              Launch HMS Dashboard
             </Link>
             <a
               href="#about"
               className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base text-slate-300 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-200"
             >
-              Explore Architecture ↓
+              Explore Architecture
             </a>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function HomePage() {
             { value: '19', label: 'Staff Roles Supported', color: '#34d399' },
             { value: '16', label: 'Feature Modules', color: '#38bdf8' },
             { value: '100%', label: 'HeFRA & NHIS Aligned', color: '#a78bfa' },
-            { value: 'AI-Powered', label: 'Ollama kimi-k3 Assistant', color: '#fb923c' },
+            { value: 'AI-Powered', label: 'Ollama Assistant', color: '#fb923c' },
           ].map(({ value, label, color }) => (
             <div key={label} className="space-y-1">
               <p className="text-3xl sm:text-4xl font-black" style={{ color }}>
@@ -214,7 +214,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-sky-400">Clinical Decision Support</span>
                 <span className="bg-sky-500/20 text-sky-300 text-[10px] px-2 py-0.5 rounded font-mono">
-                  kimi-k3:cloud
+                  AI Assistant
                 </span>
               </div>
               <p className="text-sm font-extrabold text-white">GSTG-Aligned AI Prescribing Partner</p>
@@ -244,65 +244,67 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               {
-                icon: '🪪',
+                code: 'MPI',
                 title: 'Master Patient Index (MPI)',
                 desc: 'Patient registration with Ghana Card (NIA), NHIS number verification, duplicate detection, and demographic updates.',
                 color: '#34d399',
               },
               {
-                icon: '🤖',
+                code: 'EMR',
                 title: 'AI Consultation & EMR',
-                desc: 'OPD notes, ICD-10 coding, clinical orders, and AI medicine suggestions powered by Ollama kimi-k3:cloud.',
+                desc: 'OPD notes, ICD-10 coding, clinical orders, and AI medicine suggestions powered by GSTG Clinical Assistant.',
                 color: '#38bdf8',
               },
               {
-                icon: '🔬',
+                code: 'LIS',
                 title: 'Laboratory Information System (LIS)',
                 desc: 'Specimen barcode tracking, lab result verification, critical value alerts, and hematology/biochemistry logs.',
                 color: '#a78bfa',
               },
               {
-                icon: '📡',
+                code: 'PACS',
                 title: 'Radiology & PACS Imaging',
                 desc: 'X-Ray, Ultrasound, CT, and MRI order workflows, DICOM image attachment, and verified radiologist reporting.',
                 color: '#fb923c',
               },
               {
-                icon: '💊',
+                code: 'FEFO',
                 title: 'Pharmacy & FEFO Inventory',
                 desc: 'First-Expired-First-Out drug dispensing, controlled substance logs, reorder alerts, and automated stock deduction.',
                 color: '#f472b6',
               },
               {
-                icon: '🏥',
+                code: 'ADT',
                 title: 'Inpatient Wards & Beds (ADT)',
                 desc: 'Real-time bed availability board, bed transfer management, fluid balance charts, and nursing MAR scheduling.',
                 color: '#34d399',
               },
               {
-                icon: '🧾',
+                code: 'BILL',
                 title: 'Billing & Cashier Services',
                 desc: 'MoMo, Cash, and Card payments, invoice auto-generation, shift reconciliation, and itemized patient receipts.',
                 color: '#38bdf8',
               },
               {
-                icon: '📋',
+                code: 'G-DRG',
                 title: 'NHIS G-DRG Claims Engine',
                 desc: 'Tariff code mapping, CLAIM-it batch file export, NHIA audit validation, and claim status reconciliation.',
                 color: '#a78bfa',
               },
               {
-                icon: '🛡️',
+                code: 'DPC',
                 title: 'Security & DPC Audit Trail',
                 desc: 'Immutable, IP-stamped audit logs compliant with Ghana Data Protection Commission standards across all 19 roles.',
                 color: '#fb923c',
               },
-            ].map(({ icon, title, desc, color }) => (
+            ].map(({ code, title, desc }) => (
               <div
                 key={title}
                 className="group relative p-6 rounded-2xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300"
               >
-                <div className="text-3xl mb-3">{icon}</div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-xs flex items-center justify-center mb-3">
+                  {code}
+                </div>
                 <h3 className="font-extrabold text-white text-base mb-2">{title}</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
               </div>
@@ -326,17 +328,17 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 🌟 HIGHLIGHTED LEAD DEVELOPER (RANK 1) 🌟 */}
+          {/* HIGHLIGHTED LEAD DEVELOPER (RANK 1) */}
           <div className="max-w-3xl mx-auto">
             <div className="p-8 rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-sky-950/40 shadow-2xl relative overflow-hidden group hover:border-emerald-400 transition-all duration-300">
               <div className="absolute top-0 right-0 bg-gradient-to-l from-emerald-500 to-teal-600 text-white font-extrabold text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl shadow-lg">
-                ★ Lead Developer &amp; AI Integrator
+                Lead Developer &amp; AI Integrator
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-sky-500 p-1 flex-shrink-0 shadow-xl">
-                  <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center text-4xl">
-                    🤖
+                  <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center font-extrabold text-emerald-400 text-lg">
+                    LEAD
                   </div>
                 </div>
 
@@ -358,15 +360,14 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── 8 GROUP DEVELOPERS GRID ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* GROUP DEVELOPERS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               {
                 name: 'Nana Kwabena Asare',
                 id: '22424817',
-                role: 'Senior Software Engineer',
+                role: 'Software Engineer',
                 specialty: 'Clinical EMR Consultation & ICD-10 Diagnosis Engine',
-                avatar: '👨‍⚕️',
                 tag: 'Clinical',
               },
               {
@@ -374,7 +375,6 @@ export default function HomePage() {
                 id: '22425080',
                 role: 'Software Engineer',
                 specialty: 'Master Patient Index (MPI), Ghana Card & NHIS Validation',
-                avatar: '💻',
                 tag: 'MPI Core',
               },
               {
@@ -382,23 +382,20 @@ export default function HomePage() {
                 id: '22424822',
                 role: 'FinTech & Billing Engineer',
                 specialty: 'Cashier Shift Systems, MoMo Payments & NHIS G-DRG Claims',
-                avatar: '👨‍💼',
                 tag: 'Billing',
               },
               {
                 name: 'Aubrey Owusu Amoah',
                 id: '22424666',
-                role: 'Full-Stack Engineer',
+                role: 'Senior Software Engineer',
                 specialty: 'PACS Radiology Imaging Orders & Diagnostic Workflows',
-                avatar: '📡',
                 tag: 'Radiology',
               },
               {
                 name: 'Thomas Nii Armah Okai',
                 id: '22425782',
-                role: 'Software Engineer',
+                role: 'Senior Software Engineer',
                 specialty: 'Pharmacy FEFO Stock Inventory & Prescription Dispensing',
-                avatar: '💊',
                 tag: 'Pharmacy',
               },
               {
@@ -406,7 +403,6 @@ export default function HomePage() {
                 id: '22425115',
                 role: 'QA & Security Engineer',
                 specialty: 'Inpatient Bed Management (ADT) & DPC Audit Log Compliance',
-                avatar: '🛡️',
                 tag: 'Wards & Security',
               },
               {
@@ -414,17 +410,16 @@ export default function HomePage() {
                 id: '22425049',
                 role: 'UI/UX & Frontend Engineer',
                 specialty: 'Responsive Layouts, Glassmorphism Aesthetics & Accessibility',
-                avatar: '🎨',
                 tag: 'UI/UX',
               },
-            ].map(({ name, id, role, specialty, avatar, tag }) => (
+            ].map(({ name, id, role, specialty, tag }) => (
               <div
                 key={id}
                 className="p-5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-3 hover:border-emerald-500/40 hover:bg-white/[0.05] transition-all duration-300"
               >
                 <div className="flex justify-between items-start">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-white/10 flex items-center justify-center text-2xl">
-                    {avatar}
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-white/10 flex items-center justify-center text-xs font-bold text-emerald-400">
+                    DEV
                   </div>
                   <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     {tag}
@@ -459,8 +454,8 @@ export default function HomePage() {
             </p>
 
             <div className="space-y-4 text-xs text-slate-300">
-              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="text-xl">📍</span>
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="font-bold text-emerald-400 text-xs">LOCATION</span>
                 <div>
                   <p className="font-bold text-white">Primary Demo Facility</p>
                   <p className="text-slate-400">Ridge Regional Hospital, Castle Road, Ridge, Accra</p>
@@ -468,16 +463,16 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="text-xl">📞</span>
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="font-bold text-sky-400 text-xs">PHONE</span>
                 <div>
                   <p className="font-bold text-white">System Support Hotline</p>
                   <p className="text-slate-400">+233 30 222 8311 / +233 32 206 1420</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="text-xl">✉️</span>
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="font-bold text-amber-400 text-xs">EMAIL</span>
                 <div>
                   <p className="font-bold text-white">Email Enquiries</p>
                   <p className="text-slate-400">support@healtheasy-g.gh / info@ridgehms.gh</p>

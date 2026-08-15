@@ -44,11 +44,6 @@ export const Login = () => {
     try {
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 15_000);
-      // Authentication happens on the server. There is deliberately no
-      // client-side fallback: the previous version signed anyone in with any
-      // @ridgehms.gh address — or with the shared demo password — whenever the
-      // API was unreachable, which made the password check optional in
-      // practice. If the server cannot be reached, sign-in must fail.
       let res: Response;
       try {
         res = await fetch('/api/auth/login', {

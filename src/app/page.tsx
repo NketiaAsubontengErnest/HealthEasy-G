@@ -73,7 +73,7 @@ const NUMBERS = [
 ];
 
 const LEAD = {
-  name: 'Ernest Nketia Asubonterng',
+  name: 'Ernest Nketia Asubonteng',
   id: '22424715',
   role: 'Lead System Architect & AI Integrator',
   focus:

@@ -24,7 +24,7 @@ date: "August 2026"
 
 | No. | Group Member | Student ID | Major Contribution |
 | :--- | :--- | :--- | :--- |
-| 1 | Ernest Nketia Asubonterng | 22424715 | **Lead System Architect & AI Integrator.** Layered system architecture; server-side authentication and role-based access control; PostgreSQL schema, migrations and the Prisma data-access layer; the Ollama clinical decision-support assistant and its GSTG fallback; multi-facility management; automated test suite and continuous integration; deployment. |
+| 1 | Ernest Nketia Asubonteng | 22424715 | **Lead System Architect & AI Integrator.** Layered system architecture; server-side authentication and role-based access control; PostgreSQL schema, migrations and the Prisma data-access layer; the Ollama clinical decision-support assistant and its GSTG fallback; multi-facility management; automated test suite and continuous integration; deployment. |
 | 2 | Nana Kwabena Asare | 22424817 | Clinical EMR consultation module and the ICD-10 diagnosis engine. |
 | 3 | Casper Kosi Asense | 22425080 | Master Patient Index, Ghana Card and NHIS validation, duplicate prevention. |
 | 4 | Aubrey Owusu Amoah | 22424666 | PACS radiology ordering, reporting workflow and diagnostic worklists. |
@@ -34,7 +34,7 @@ date: "August 2026"
 
 ## 1.2 Note on This Submission
 
-This document is submitted individually by **Ernest Nketia Asubonterng (22424715)** in
+This document is submitted individually by **Ernest Nketia Asubonteng (22424715)** in
 accordance with the individual submission requirement. The software is the group's work; the
 contribution recorded above for this student is the architecture, the security model, the
 data layer, the clinical AI integration, the test suite and the deployment.

@@ -19,7 +19,7 @@ date: "August 2026"
 
 | # | Name | Student ID | Major Contribution |
 | :-- | :--- | :--- | :--- |
-| 1 | Ernest Nketia Asubonterng | 22424715 | Lead System Architect & AI Integrator |
+| 1 | Ernest Nketia Asubonteng | 22424715 | Lead System Architect & AI Integrator |
 | 2 | Nana Kwabena Asare | 22424817 | Clinical EMR and ICD-10 diagnosis engine |
 | 3 | Casper Kosi Asense | 22425080 | Master Patient Index, Ghana Card and NHIS validation |
 | 4 | Aubrey Owusu Amoah | 22424666 | PACS radiology orders and diagnostic workflows |
